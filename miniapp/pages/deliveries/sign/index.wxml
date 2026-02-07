@@ -1,0 +1,78 @@
+<view class="container">
+  <view class="card" wx:if="{{delivery}}">
+    <view class="title">签收单据</view>
+    <view class="row">
+      <text class="label">单据号</text>
+      <text class="value">{{delivery.kingdee_doc_no}}</text>
+    </view>
+    <view class="row">
+      <text class="label">发货日期</text>
+      <text class="value">{{delivery.ship_date_text}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">签收信息</view>
+
+    <view class="field">
+      <view class="label">签收人姓名</view>
+      <input
+        class="input"
+        placeholder="请输入签收人"
+        value="{{signerName}}"
+        bindinput="onSignerInput"
+      />
+    </view>
+
+    <view class="field">
+      <view class="label">手写签名</view>
+      <view class="canvas-wrap" id="signWrap">
+        <canvas
+          id="signCanvas"
+          canvas-id="signCanvas"
+          class="sign-canvas"
+          style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+          disable-scroll="true"
+          bindtouchstart="handleTouchStart"
+          bindtouchmove="handleTouchMove"
+          bindtouchend="handleTouchEnd"
+        ></canvas>
+      </view>
+      <view class="canvas-actions">
+        <button class="btn-plain canvas-btn" bindtap="clearSignature">清除签名</button>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="row">
+        <text class="label">现场照片（最多 3 张）</text>
+        <text class="sub-title">已选 {{photos.length}}/3</text>
+      </view>
+      <view class="photo-grid">
+        <view class="photo-item add" bindtap="choosePhotos" wx:if="{{photos.length < 3}}">
+          <text class="add-text">+ 添加</text>
+        </view>
+
+        <view class="photo-item" wx:for="{{photos}}" wx:key="*this">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" bindtap="previewPhoto" data-url="{{item}}"></image>
+          <view class="photo-del" bindtap="removePhoto" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="label">备注</view>
+      <textarea
+        class="textarea"
+        placeholder="可填写异常说明（选填）"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+        maxlength="500"
+      ></textarea>
+    </view>
+
+    <button class="btn-primary" bindtap="submitSign" loading="{{submitting}}" disabled="{{submitting}}">
+      提交签收
+    </button>
+  </view>
+</view>

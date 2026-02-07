@@ -1,0 +1,76 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{!detail}}">
+    <view class="empty">未找到对账单</view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="title">对账单信息</view>
+      <view class="row">
+        <text class="label">账期</text>
+        <text class="value">{{detail.period_text}}</text>
+      </view>
+      <view class="row">
+        <text class="label">总金额</text>
+        <text class="value">{{detail.currency}} {{detail.total_amount_text}}</text>
+      </view>
+      <view class="row">
+        <text class="label">状态</text>
+        <text class="value {{detail.status === 'CONFIRMED' ? 'status-ok' : 'status-pending'}}">{{detail.status}}</text>
+      </view>
+      <view class="row" wx:if="{{detail.confirmed_at_text}}">
+        <text class="label">确认时间</text>
+        <text class="value">{{detail.confirmed_at_text}}</text>
+      </view>
+      <view class="row" wx:if="{{detail.confirm_remark}}">
+        <text class="label">确认备注</text>
+        <text class="value">{{detail.confirm_remark}}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="title">明细列表</view>
+      <block wx:if="{{lines.length === 0}}">
+        <view class="sub-title">暂无明细</view>
+      </block>
+      <block wx:else>
+        <view class="line" wx:for="{{lines}}" wx:key="id">
+          <view class="line-row">
+            <text class="line-label">单据号</text>
+            <text class="line-value">{{item.doc_no}}</text>
+          </view>
+          <view class="line-row">
+            <text class="line-label">类型</text>
+            <text class="line-value">{{item.doc_type}}</text>
+          </view>
+          <view class="line-row">
+            <text class="line-label">日期</text>
+            <text class="line-value">{{item.doc_date_text}}</text>
+          </view>
+          <view class="line-row">
+            <text class="line-label">金额</text>
+            <text class="line-value">{{item.amount_text}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="card" wx:if="{{detail.status !== 'CONFIRMED'}}">
+      <view class="title">确认对账</view>
+      <textarea
+        class="remark-input"
+        placeholder="确认备注（选填）"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+        maxlength="500"
+      ></textarea>
+      <button class="btn-primary" bindtap="confirm" loading="{{confirming}}" disabled="{{confirming}}">
+        确认无误
+      </button>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,86 @@
+.field {
+  margin: 18rpx 0 24rpx;
+}
+
+.input,
+.textarea {
+  margin-top: 10rpx;
+  width: 100%;
+  border: 1rpx solid #dbe2ea;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  padding: 18rpx;
+}
+
+.textarea {
+  min-height: 160rpx;
+}
+
+.canvas-wrap {
+  margin-top: 10rpx;
+  border: 1rpx dashed #93c5fd;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.sign-canvas {
+  width: 100%;
+  height: 360rpx;
+}
+
+.canvas-actions {
+  margin-top: 12rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.canvas-btn {
+  margin: 0;
+}
+
+.photo-grid {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.photo-item {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  position: relative;
+  background: #f1f5f9;
+}
+
+.photo-item.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx dashed #93c5fd;
+}
+
+.add-text {
+  color: #2563eb;
+  font-size: 26rpx;
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-del {
+  position: absolute;
+  right: 6rpx;
+  top: 6rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  line-height: 36rpx;
+  text-align: center;
+}

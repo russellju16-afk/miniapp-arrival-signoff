@@ -1,0 +1,30 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 200rpx;
+  margin: 0;
+}
+
+.item {
+  margin-top: 16rpx;
+}
+
+.more {
+  margin-top: 10rpx;
+  color: #2563eb;
+  font-size: 24rpx;
+  text-align: right;
+}
+
+.status-ok {
+  color: #16a34a;
+}
+
+.status-pending {
+  color: #ea580c;
+}

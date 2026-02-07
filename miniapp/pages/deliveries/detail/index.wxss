@@ -1,0 +1,19 @@
+.line {
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #edf2f7;
+}
+
+.line:last-child {
+  border-bottom: none;
+}
+
+.line-name {
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+.line-meta {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #64748b;
+}

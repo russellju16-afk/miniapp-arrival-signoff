@@ -1,0 +1,30 @@
+<view class="container">
+  <view class="card">
+    <view class="title">客户登录</view>
+    <view class="sub-title">请输入客户 access token，或扫码自动带入 token。</view>
+
+    <view class="field">
+      <view class="label">访问 Token</view>
+      <input
+        class="input"
+        placeholder="请输入 token"
+        value="{{token}}"
+        bindinput="onTokenInput"
+      />
+    </view>
+
+    <button class="btn-primary" bindtap="onSubmit" loading="{{loading}}" disabled="{{loading}}">
+      登录
+    </button>
+    <button class="btn-plain" bindtap="onScanToken" disabled="{{loading}}">
+      扫码登录
+    </button>
+  </view>
+
+  <view class="card tips">
+    <view class="tips-title">调试提示</view>
+    <view class="tips-item">1. 先在后端写入 customer.access_token。</view>
+    <view class="tips-item">2. 真机调试时把 API 域名改成可访问地址。</view>
+    <view class="tips-item">3. 开发者工具可在“本地设置”关闭域名校验做本地联调。</view>
+  </view>
+</view>

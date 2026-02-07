@@ -1,0 +1,64 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{!detail}}">
+    <view class="empty">未找到单据</view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="title">单据信息</view>
+      <view class="row">
+        <text class="label">单据号</text>
+        <text class="value">{{detail.kingdee_doc_no}}</text>
+      </view>
+      <view class="row">
+        <text class="label">发货日期</text>
+        <text class="value">{{detail.ship_date_text}}</text>
+      </view>
+      <view class="row">
+        <text class="label">状态</text>
+        <text class="value">{{detail.status}}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="title">商品明细</view>
+      <block wx:if="{{items.length === 0}}">
+        <view class="sub-title">暂无明细</view>
+      </block>
+      <block wx:else>
+        <view class="line" wx:for="{{items}}" wx:key="index">
+          <view class="line-name">{{item.name || item.material_name || item.sku || ('商品' + (index + 1))}}</view>
+          <view class="line-meta">数量：{{item.qty || item.quantity || item.num || '-'}}</view>
+        </view>
+      </block>
+    </view>
+
+    <view class="card" wx:if="{{detail.receipt}}">
+      <view class="title">签收信息</view>
+      <view class="row">
+        <text class="label">签收人</text>
+        <text class="value">{{detail.receipt.signer_name}}</text>
+      </view>
+      <view class="row">
+        <text class="label">签收时间</text>
+        <text class="value">{{detail.receipt.signed_at_text}}</text>
+      </view>
+      <view class="row">
+        <text class="label">备注</text>
+        <text class="value">{{detail.receipt.remark || '-'}}</text>
+      </view>
+    </view>
+
+    <button
+      wx:if="{{detail.status !== 'SIGNED'}}"
+      class="btn-primary"
+      bindtap="goSign"
+    >
+      去签收
+    </button>
+  </block>
+</view>

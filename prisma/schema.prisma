@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DeliverySignoff {
+  id               String   @id @default(uuid())
+  deliveryNo       String   @unique
+  signer           String
+  receivedAt       DateTime
+  remark           String?
+  kingdeeRequestId String?
+  kingdeeResponse  Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model KingdeeTenant {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String?
+  clientId       String      @map("client_id")
+  clientSecret   String      @map("client_secret")
+  appKey         String      @unique(map: "kingdee_tenant_app_key_key") @map("app_key")
+  appSecret      String      @map("app_secret")
+  domain         String
+  appToken       String?     @map("app_token")
+  tokenExpiresAt DateTime?   @map("token_expires_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  customers      Customer[]
+  deliveries     Delivery[]
+  statements     Statement[]
+
+  @@map("kingdee_tenant")
+}
+
+model KingdeeRaw {
+  id       String   @id @default(uuid()) @db.Uuid
+  tenantId String   @map("tenant_id")
+  bizType  String   @map("biz_type")
+  bizId    String?  @map("biz_id")
+  data     Json
+  hash     String
+  pulledAt DateTime @default(now()) @map("pulled_at")
+
+  @@unique([tenantId, bizType, bizId, hash], map: "kingdee_raw_tenant_biz_bizid_hash_key")
+  @@index([tenantId, bizType, bizId, pulledAt(sort: Desc)], map: "kingdee_raw_tenant_biz_bizid_pulled_idx")
+  @@map("kingdee_raw")
+}
+
+model SyncJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id")
+  jobName       String    @map("job_name")
+  lastSuccessAt DateTime? @map("last_success_at")
+  lastCursor    Json?     @map("last_cursor")
+  status        String
+  error         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tenantId, jobName], map: "sync_job_tenant_job_name_key")
+  @@index([tenantId, status], map: "sync_job_tenant_status_idx")
+  @@map("sync_job")
+}
+
+model Customer {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  name              String
+  phone             String?
+  kingdeeCustomerId String?       @map("kingdee_customer_id")
+  accessToken       String        @unique(map: "customer_access_token_key") @map("access_token")
+  tokenExpiresAt    DateTime?     @map("token_expires_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  tenant            KingdeeTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries        Delivery[]
+  receipts          Receipt[]
+  statements        Statement[]
+
+  @@index([tenantId], map: "customer_tenant_idx")
+  @@index([phone], map: "customer_phone_idx")
+  @@map("customer")
+}
+
+model Delivery {
+  id           String        @id @default(uuid()) @db.Uuid
+  tenantId     String        @map("tenant_id") @db.Uuid
+  customerId   String        @map("customer_id") @db.Uuid
+  kingdeeDocNo String        @map("kingdee_doc_no")
+  kingdeeDocId String?       @map("kingdee_doc_id")
+  shipDate     DateTime?     @map("ship_date")
+  items        Json?
+  status       String        @default("PENDING")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  tenant       KingdeeTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  receipt      Receipt?
+
+  @@index([tenantId, customerId, status], map: "delivery_tenant_customer_status_idx")
+  @@index([customerId, shipDate(sort: Desc)], map: "delivery_customer_ship_date_idx")
+  @@index([kingdeeDocNo], map: "delivery_doc_no_idx")
+  @@map("delivery")
+}
+
+model Receipt {
+  id                String   @id @default(uuid()) @db.Uuid
+  deliveryId        String   @unique(map: "receipt_delivery_id_key") @map("delivery_id") @db.Uuid
+  customerId        String   @map("customer_id") @db.Uuid
+  signerName        String   @map("signer_name")
+  signedAt          DateTime @map("signed_at")
+  signatureImageUrl String   @map("signature_image_url")
+  photos            Json?
+  remark            String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  delivery          Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt(sort: Desc)], map: "receipt_customer_created_idx")
+  @@map("receipt")
+}
+
+model Statement {
+  id            String          @id @default(uuid()) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  customerId    String          @map("customer_id") @db.Uuid
+  periodStart   DateTime        @map("period_start")
+  periodEnd     DateTime        @map("period_end")
+  totalAmount   Decimal         @map("total_amount") @db.Decimal(18, 2)
+  currency      String
+  status        String
+  confirmedAt   DateTime?       @map("confirmed_at")
+  confirmRemark String?         @map("confirm_remark")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  tenant        KingdeeTenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lines         StatementLine[]
+
+  @@index([tenantId, customerId, periodStart, periodEnd], map: "statement_tenant_customer_period_idx")
+  @@index([customerId, status], map: "statement_customer_status_idx")
+  @@map("statement")
+}
+
+model StatementLine {
+  id          String    @id @default(uuid()) @db.Uuid
+  statementId String    @map("statement_id") @db.Uuid
+  docType     String    @map("doc_type")
+  docNo       String    @map("doc_no")
+  docDate     DateTime? @map("doc_date")
+  amount      Decimal   @db.Decimal(18, 2)
+  raw         Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  statement   Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId], map: "statement_line_statement_idx")
+  @@index([docType, docNo], map: "statement_line_doc_idx")
+  @@map("statement_line")
+}

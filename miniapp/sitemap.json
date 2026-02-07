@@ -1,0 +1,9 @@
+{
+  "desc": "线上签收与对账小程序 sitemap",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

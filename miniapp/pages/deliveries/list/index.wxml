@@ -1,0 +1,33 @@
+<view class="container">
+  <view class="card actions">
+    <button class="btn-primary action-btn" bindtap="goStatements">查看对账单</button>
+    <button class="btn-plain action-btn" bindtap="refreshData">刷新</button>
+    <button class="btn-danger action-btn" bindtap="logout">退出登录</button>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{list.length === 0}}">
+    <view class="empty">暂无待签收单据</view>
+  </block>
+
+  <block wx:else>
+    <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="row">
+        <text class="label">单据号</text>
+        <text class="value">{{item.kingdee_doc_no}}</text>
+      </view>
+      <view class="row">
+        <text class="label">发货日期</text>
+        <text class="value">{{item.ship_date_text}}</text>
+      </view>
+      <view class="row">
+        <text class="label">状态</text>
+        <text class="value {{item.status === 'SIGNED' ? 'status-ok' : 'status-pending'}}">{{item.status}}</text>
+      </view>
+      <view class="more">查看详情 ></view>
+    </view>
+  </block>
+</view>

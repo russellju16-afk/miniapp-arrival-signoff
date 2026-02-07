@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/deliveries/list/index",
+    "pages/deliveries/detail/index",
+    "pages/deliveries/sign/index",
+    "pages/statements/list/index",
+    "pages/statements/detail/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "线上签收与对账",
+    "backgroundColor": "#f6f7fb",
+    "backgroundTextStyle": "light"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

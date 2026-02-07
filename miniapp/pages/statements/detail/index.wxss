@@ -1,0 +1,42 @@
+.status-ok {
+  color: #16a34a;
+}
+
+.status-pending {
+  color: #ea580c;
+}
+
+.line {
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #edf2f7;
+}
+
+.line:last-child {
+  border-bottom: none;
+}
+
+.line-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 6rpx 0;
+}
+
+.line-label {
+  color: #64748b;
+  font-size: 24rpx;
+}
+
+.line-value {
+  color: #0f172a;
+  font-size: 26rpx;
+}
+
+.remark-input {
+  margin: 12rpx 0 20rpx;
+  width: 100%;
+  min-height: 140rpx;
+  border: 1rpx solid #dbe2ea;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  padding: 16rpx;
+}

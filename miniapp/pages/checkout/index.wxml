@@ -1,0 +1,100 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="empty">结算信息加载中...</view>
+  </block>
+
+  <block wx:elif="{{!pageReady}}">
+    <view class="empty">正在准备结算...</view>
+  </block>
+
+  <block wx:elif="{{items.length === 0}}">
+    <view class="card">
+      <view class="empty">没有可结算商品，请先加入购物车。</view>
+      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="section-head">
+        <view class="title">收货地址</view>
+        <button class="btn-mini" bindtap="goManageAddress">管理</button>
+      </view>
+      <block wx:if="{{selectedAddress}}">
+        <view class="row">
+          <text class="value">{{selectedAddress.receiver}}</text>
+          <text class="value">{{selectedAddress.phone}}</text>
+        </view>
+        <view class="sub-title">{{selectedAddress.province}}{{selectedAddress.city}}{{selectedAddress.district}}{{selectedAddress.detail}}</view>
+      </block>
+      <block wx:else>
+        <view class="sub-title">暂无地址，请先新增地址</view>
+      </block>
+    </view>
+
+    <view class="card">
+      <view class="title">配送方式</view>
+      <picker mode="selector" range="{{deliveryOptions}}" range-key="label" value="{{deliveryIndex}}" bindchange="onDeliveryChange">
+        <view class="picker">{{deliveryOptions[deliveryIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <view class="title">商品清单</view>
+      <view class="line" wx:for="{{items}}" wx:key="skuId">
+        <view class="row">
+          <text class="value">{{item.productName}}</text>
+          <text class="value">¥{{item.lineAmountText}}</text>
+        </view>
+        <view class="sub-title">{{item.skuName}} · 数量 x {{item.qty}} · 单价 ¥{{item.unitPriceText}}</view>
+        <view class="sub-title" wx:if="{{item.specsText}}">{{item.specsText}}</view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-head">
+        <view class="title">优惠券</view>
+        <button class="btn-mini" bindtap="goCouponCenter">优惠券中心</button>
+      </view>
+      <picker mode="selector" range="{{couponOptions}}" range-key="label" value="{{couponIndex}}" bindchange="onCouponChange">
+        <view class="picker">{{couponOptions[couponIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <view class="title">订单备注</view>
+      <textarea
+        class="remark"
+        placeholder="如：工作日 9:00-18:00 收货"
+        maxlength="200"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+      ></textarea>
+
+      <view class="row summary-row">
+        <text class="label">商品件数</text>
+        <text class="value">{{totalQty}} 件</text>
+      </view>
+      <view class="row summary-row">
+        <text class="label">商品金额</text>
+        <text class="value">¥{{totalAmountText}}</text>
+      </view>
+      <view class="row summary-row">
+        <text class="label">配送费</text>
+        <text class="value">¥{{deliveryFeeText}}</text>
+      </view>
+      <view class="row summary-row">
+        <text class="label">优惠抵扣</text>
+        <text class="discount">-¥{{discountAmountText}}</text>
+      </view>
+      <view class="row summary-row total-row">
+        <text class="value">应付金额</text>
+        <text class="total">¥{{payAmountText}}</text>
+      </view>
+
+      <button class="btn-primary" bindtap="submitOrder" loading="{{submitting}}" disabled="{{submitting}}">
+        {{submitting ? '提交中...' : '提交订单'}}
+      </button>
+    </view>
+  </block>
+</view>

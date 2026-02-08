@@ -40,14 +40,20 @@ Page({
         detail: detail
           ? {
               ...detail,
-              period_text: `${formatDate(detail.period_start)} ~ ${formatDate(detail.period_end)}`,
-              total_amount_text: formatAmount(detail.total_amount),
-              confirmed_at_text: detail.confirmed_at ? formatDateTime(detail.confirmed_at) : ''
+              period_text: `${formatDate(detail.periodStart || detail.period_start)} ~ ${formatDate(
+                detail.periodEnd || detail.period_end
+              )}`,
+              total_amount_text: formatAmount(detail.totalAmount || detail.total_amount),
+              confirmed_at_text: detail.confirmedAt
+                ? formatDateTime(detail.confirmedAt)
+                : detail.confirmed_at
+                  ? formatDateTime(detail.confirmed_at)
+                  : ''
             }
           : null,
         lines: lines.map((line) => ({
           ...line,
-          doc_date_text: formatDate(line.doc_date),
+          doc_date_text: formatDate(line.docDate || line.doc_date),
           amount_text: formatAmount(line.amount)
         }))
       });
@@ -80,14 +86,20 @@ Page({
         detail: detail
           ? {
               ...detail,
-              period_text: `${formatDate(detail.period_start)} ~ ${formatDate(detail.period_end)}`,
-              total_amount_text: formatAmount(detail.total_amount),
-              confirmed_at_text: detail.confirmed_at ? formatDateTime(detail.confirmed_at) : ''
+              period_text: `${formatDate(detail.periodStart || detail.period_start)} ~ ${formatDate(
+                detail.periodEnd || detail.period_end
+              )}`,
+              total_amount_text: formatAmount(detail.totalAmount || detail.total_amount),
+              confirmed_at_text: detail.confirmedAt
+                ? formatDateTime(detail.confirmedAt)
+                : detail.confirmed_at
+                  ? formatDateTime(detail.confirmed_at)
+                  : ''
             }
           : null,
         lines: lines.map((line) => ({
           ...line,
-          doc_date_text: formatDate(line.doc_date),
+          doc_date_text: formatDate(line.docDate || line.doc_date),
           amount_text: formatAmount(line.amount)
         }))
       });

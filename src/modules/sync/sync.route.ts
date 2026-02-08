@@ -1,90 +1,55 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 import { ensureAdminAuthorization } from "../common/admin-auth";
-import { AppError } from "../common/app-error";
-import { RunSyncJobInput, SyncJobName } from "./sync.types";
-import { syncService } from "./sync.service";
+import { coreService } from "../core/core.service";
 
 const runBodySchema = z.object({
-  tenantId: z.string().min(1, "tenantId 不能为空"),
+  tenantId: z.string().optional(),
   jobName: z.string().min(1, "jobName 不能为空"),
   fromTime: z.number().int().optional(),
   toTime: z.number().int().optional()
 });
 
 const statusQuerySchema = z.object({
-  tenantId: z.string().optional()
+  tenantId: z.string().optional(),
+  jobName: z.string().optional()
 });
 
 export async function syncRoutes(app: FastifyInstance): Promise<void> {
-  app.post(
-    "/admin/sync/run",
-    {
-      preHandler: async (request) => ensureAdminAuthorization(request)
-    },
-    async (request) => {
-      const body = runBodySchema.parse(request.body ?? {});
-      const jobName = normalizeJobName(body.jobName);
+  const runHandler = async (request: FastifyRequest) => {
+    const body = runBodySchema.parse(request.body ?? {});
+    const data = await coreService.runAdminSyncJob({
+      tenantId: body.tenantId,
+      jobName: body.jobName,
+      fromTime: body.fromTime,
+      toTime: body.toTime
+    });
 
-      const input: RunSyncJobInput = {
-        tenantId: body.tenantId,
-        jobName,
-        fromTime: body.fromTime,
-        toTime: body.toTime
-      };
+    return {
+      ok: true,
+      requestId: request.id,
+      data
+    };
+  };
 
-      const data = await syncService.runJob(input);
+  const statusHandler = async (request: FastifyRequest) => {
+    const query = statusQuerySchema.parse(request.query ?? {});
+    const data = await coreService.listAdminSyncStatus(query.jobName);
+    const warnings =
+      query.tenantId && query.tenantId.trim() ? ["core 同步为单租户模式，tenantId 参数已忽略"] : [];
 
-      return {
-        ok: true,
-        requestId: request.id,
-        data
-      };
-    }
-  );
+    return {
+      ok: true,
+      requestId: request.id,
+      data,
+      warnings
+    };
+  };
 
-  app.get(
-    "/admin/sync/status",
-    {
-      preHandler: async (request) => ensureAdminAuthorization(request)
-    },
-    async (request) => {
-      const query = statusQuerySchema.parse(request.query ?? {});
-      const data = await syncService.getStatus(query.tenantId);
+  const authPreHandler = async (request: FastifyRequest) => ensureAdminAuthorization(request);
 
-      return {
-        ok: true,
-        requestId: request.id,
-        data
-      };
-    }
-  );
-}
-
-function normalizeJobName(jobName: string): SyncJobName {
-  const value = jobName.trim() as SyncJobName;
-  const allowed: SyncJobName[] = [
-    "customer",
-    "supplier",
-    "sal_order",
-    "sal_out_bound",
-    "sal_invoice",
-    "pur_order",
-    "pur_inbound",
-    "pur_invoice",
-    "ap_credit",
-    "ar_credit",
-    "voucher",
-    "inventory",
-    "inventory_stock",
-    "master_data_full",
-    "documents_incremental"
-  ];
-
-  if (!allowed.includes(value)) {
-    throw new AppError(400, "SYNC_JOB_UNSUPPORTED", `不支持的 jobName: ${jobName}`);
-  }
-
-  return value;
+  // legacy 兼容路由（deprecated），主线已迁移到 core: /api/admin/sync/*
+  app.post("/admin/sync/run", { preHandler: authPreHandler }, runHandler);
+  app.get("/admin/sync/status", { preHandler: authPreHandler }, statusHandler);
 }

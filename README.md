@@ -1,465 +1,269 @@
-# Kingdee WeChat Backend
+# 金蝶云星辰 + 微信小程序后端（M4 联调加固版）
 
-一个可运行、可部署的 Node.js 20 + TypeScript 后端项目，用于对接 **金蝶云星辰 OpenAPI**，并向 **微信小程序** 提供接口。
+在现有仓库上增量演进，当前策略：
 
-## 技术栈
+- 主线：`/api/*`
+- 兼容：`/mini/*`（deprecated，仅兼容旧调用）
+- 双库保留：`core(SQLite)` + `legacy(Postgres)`，新功能只进 `core`
 
-- Node.js 20
-- TypeScript
-- Fastify
-- PostgreSQL 16
-- Redis
-- Prisma ORM
-- Docker + docker-compose
+提示：`/api/admin/sync/*` 与 `/admin/sync/*` 都已转发到 core(SQLite) 主线；`/admin/sync/*` 仅作为 deprecated 兼容入口保留。
 
-## 项目结构
+## 1. 路由分层
 
-```text
-.
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── README.md
-├── docker-compose.yml
-├── docs
-│   ├── api.md
-│   └── architecture.md
-├── package.json
-├── prisma
-│   ├── migrations
-│   │   ├── 20260206195000_init
-│   │   │   └── migration.sql
-│   │   ├── 20260206202000_add_kingdee_tenant
-│   │   │   └── migration.sql
-│   │   ├── 20260206211000_add_sync_tables
-│   │   │   └── migration.sql
-│   │   ├── 20260206233000_add_mini_program_tables
-│   │   │   └── migration.sql
-│   │   └── migration_lock.toml
-│   └── schema.prisma
-├── scripts
-│   ├── bootstrap.sh
-│   └── health-check.sh
-├── src
-│   ├── app.ts
-│   ├── config
-│   │   ├── env.ts
-│   │   ├── logger.ts
-│   │   └── redis.ts
-│   ├── db
-│   │   └── prisma.ts
-│   ├── lib
-│   │   └── kingdee-signature.ts
-│   ├── modules
-│   │   ├── common
-│   │   │   ├── admin-auth.ts
-│   │   │   └── app-error.ts
-│   │   ├── health
-│   │   │   └── health.route.ts
-│   │   ├── kingdee
-│   │   │   ├── kingdee-api.client.ts
-│   │   │   └── kingdee.client.ts
-│   │   ├── kingdee-tenant
-│   │   │   ├── kingdee-tenant.repo.ts
-│   │   │   ├── kingdee-tenant.route.ts
-│   │   │   ├── kingdee-tenant.service.ts
-│   │   │   └── kingdee-token.service.ts
-│   │   ├── mini
-│   │   │   ├── mini.repo.ts
-│   │   │   ├── mini.route.ts
-│   │   │   ├── mini.service.ts
-│   │   │   └── mini.types.ts
-│   │   ├── sync
-│   │   │   ├── index.ts
-│   │   │   ├── sync.repo.ts
-│   │   │   ├── sync.route.ts
-│   │   │   ├── sync.scheduler.ts
-│   │   │   ├── sync.service.ts
-│   │   │   └── sync.types.ts
-│   │   └── wechat
-│   │       ├── wechat.route.ts
-│   │       └── wechat.service.ts
-│   └── server.ts
-└── tsconfig.json
-```
+- `core` 主线接口：`/api/*`
+- `legacy` 兼容接口：`/mini/*`
 
-## 环境变量
+`/mini/*` 会返回弃用响应头（`Deprecation/Sunset/Link`），建议尽快迁移到 `/api/mini/*`。
 
-复制环境变量模板：
+## 2. 环境变量
+
+先复制模板：
 
 ```bash
 cp .env.example .env
 ```
 
-关键变量：
+核心配置：
 
-- `ADMIN_TOKEN`（管理接口 Bearer Token）
-- `DATABASE_URL`
-- `REDIS_URL`
-- `KINGDEE_APP_TOKEN_BASE_URL`（默认 `https://api.kingdee.com`）
-- `KINGDEE_APP_TOKEN_PATH`（默认 `/jdyconnector/app_management/kingdee_auth_token`）
-- `KINGDEE_APP_TOKEN_METHOD`（默认 `GET`）
-- `KINGDEE_APP_TOKEN_TIMEOUT_MS`（默认 `10000`）
-- `KINGDEE_TOKEN_REFRESH_WINDOW_SECONDS`（默认 `600`，提前 10 分钟刷新）
-- `SYNC_SCHEDULER_ENABLED`（默认 `true`）
-- `SYNC_MASTER_DAILY_CRON`（默认 `0 2 * * *`）
-- `SYNC_DOCUMENT_HOURLY_CRON`（默认 `0 * * * *`）
-- `UPLOAD_DIR`（默认 `./uploads`）
-- `UPLOAD_PUBLIC_BASE_URL`（默认 `http://localhost:3000`，用于拼接签名图片 URL）
+```env
+NODE_ENV=development
+PORT=3000
+DB_URL=file:./prisma/core/dev.db
+ADMIN_TOKEN=dev-admin-token
 
-## 本机启动命令
+KD_BASE_URL=https://api.kingdee.com
+KD_GW_ROUTER_ADDR=https://tf.jdy.com
+KD_CLIENT_ID=
+KD_CLIENT_SECRET=
+KD_APP_KEY=
+KD_APP_SECRET=
+KD_APP_TOKEN_PATH=/jdyconnector/app_management/kingdee_auth_token
+KD_APP_TOKEN_METHOD=GET
+KD_TIMEOUT_MS=10000
+KD_TOKEN_CACHE_HOURS=24
+KD_MOCK_MODE=true
+KD_LIVE_CHECK_WRITEBACK_PROBE=false
+KD_LIVE_CHECK_PROBE_ORDER_ID=
+```
 
-1. 安装依赖
+说明：
+
+- `KD_MOCK_MODE=true`：可在无真实凭据时完成同步与烟测。
+- `NODE_ENV=production` 会强校验 `KD_CLIENT_ID/KD_CLIENT_SECRET/KD_APP_KEY/KD_APP_SECRET`。
+- `KD_LIVE_CHECK_WRITEBACK_PROBE=true`：启用 `kd:live-check` 写回探测（需提供 `KD_LIVE_CHECK_PROBE_ORDER_ID`，且订单状态必须是 `CREATED` 或 `WRITEBACK_FAILED`）。
+
+## 3. 常用命令
+
+```bash
+npm run doctor:env
+npm run core:prisma:generate
+npm run core:db:push
+npm run extract:endpoints
+npm run dev
+npm run build
+npm run test
+
+npm run kd:ping
+npm run kd:live-check
+
+npm run sync:deliveries
+npm run sync:receipts
+npm run sync:demo
+
+npm run smoke:core
+npm run smoke:mini
+npm run smoke:mall
+npm run smoke:mall:live
+```
+
+## 4. 本地启动
 
 ```bash
 npm install
-```
-
-2. 生成 Prisma Client
-
-```bash
-npm run prisma:generate
-```
-
-3. 执行数据库迁移
-
-```bash
-npm run prisma:migrate:dev -- --name init
-```
-
-4. 启动服务（开发模式）
-
-```bash
+npm run core:prisma:generate
+npm run core:db:push
+npm run extract:endpoints
 npm run dev
 ```
 
-## Docker 启动命令（app + postgres + redis）
-
-1. 准备环境变量
+健康检查：
 
 ```bash
-cp .env.example .env
+curl http://localhost:3000/api/health
 ```
 
-2. 一键启动
+## 5. M2 联调主线（小程序）
+
+### 5.1 管理同步（core 主线）
 
 ```bash
-docker compose up -d --build
+curl -X POST http://localhost:3000/api/admin/sync/run \
+  -H 'Authorization: Bearer dev-admin-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"jobName":"sync:deliveries"}'
+
+curl "http://localhost:3000/api/admin/sync/status" \
+  -H 'Authorization: Bearer dev-admin-token'
 ```
 
-3. 查看 app 日志
+`jobName` 支持：`sync:deliveries`、`sync:receipts`、`sync:all`（兼容 `deliveries/receipts`）。
+
+### 5.2 管理员签发客户 token
 
 ```bash
-docker compose logs -f app
+curl -X POST http://localhost:3000/api/admin/customers/token/issue \
+  -H 'Authorization: Bearer dev-admin-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"customerId":"<customerId>","ttlDays":30}'
 ```
 
-## 数据库迁移命令
-
-本机：
+### 5.3 小程序登录
 
 ```bash
-npm run prisma:migrate:dev -- --name add_mini_program_tables
+curl -X POST http://localhost:3000/api/mini/login \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"<customer_access_token>"}'
 ```
 
-Docker（运行中容器）：
+### 5.4 发货单与签收
 
 ```bash
-docker compose exec app npm run prisma:migrate:deploy
+curl "http://localhost:3000/api/mini/deliveries?page=1&pageSize=20" \
+  -H "Authorization: Bearer <customer_access_token>"
+
+curl "http://localhost:3000/api/mini/deliveries/<deliveryId>" \
+  -H "Authorization: Bearer <customer_access_token>"
+
+curl -X POST "http://localhost:3000/api/mini/deliveries/<deliveryId>/sign" \
+  -H "Authorization: Bearer <customer_access_token>" \
+  -H 'Content-Type: application/json' \
+  -H 'x-idempotency-key: sign-idem-0001' \
+  -d '{"signerName":"张三","remark":"已签收"}'
 ```
 
-## 健康检查
+### 5.5 对账与确认
+
+先生成对账单（core 业务接口）：
 
 ```bash
-curl http://localhost:3000/health
+curl "http://localhost:3000/api/reconcile/statement?customerId=<customerId>&from=2026-02-01&to=2026-02-28"
 ```
 
-## 数据同步模块
-
-### 支持拉取的金蝶接口（GET）
-
-- 客户列表: `/v2/bd/customer`
-- 供应商列表: `/v2/bd/supplier`
-- 销售订单列表/详情: `/v2/scm/sal_order` / `/v2/scm/sal_order_detail`
-- 销售出库单列表/详情: `/v2/scm/sal_out_bound` / `/v2/scm/sal_out_bound_detail`
-- 销售发票列表/详情: `/v2/scm/sal_invoice_list` / `/v2/scm/sal_invoice_detail`
-- 采购订单列表/详情: `/v2/scm/pur_order` / `/v2/scm/pur_order_detail`
-- 采购入库列表/详情: `/v2/scm/pur_inbound` / `/v2/scm/pur_inbound_detail`
-- 采购发票列表: `/v2/scm/pur_invoice`
-- 付款单列表/详情: `/v2/arap/ap_credit` / `/v2/arap/ap_credit_detail`
-- 收款单列表/详情: `/v2/arap/ar_credit` / `/v2/arap/ar_credit_detail`
-- 凭证列表: `/v2/fi/voucher`
-- 商品库存列表: `/v2/scm/inventory`
-- 仓库库存查询: `/v2/scm/inventory_stock`
-
-### 分页与增量规则
-
-- 通用分页参数：`page`（默认 1）、`page_size`（默认 50）
-- 增量优先使用：`modify_start_time` / `modify_end_time`（毫秒）
-- 接口不支持增量参数时自动降级为全量分页，并写入 warning
-
-### 落库表
-
-- `kingdee_raw`：原始数据 JSON（`tenant_id`, `biz_type`, `biz_id`, `data`, `hash`, `pulled_at`）
-- `sync_job`：同步任务状态（`tenant_id`, `job_name`, `last_success_at`, `last_cursor`, `status`, `error`）
-
-同一 `tenant_id + biz_type + biz_id` 下，如果最新 `hash` 未变化则跳过写入。
-
-### 管理接口
-
-1) 手动触发同步：
+再走小程序查询/确认：
 
 ```bash
-curl -X POST http://localhost:3000/admin/sync/run \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -d '{
-    "tenantId": "your-tenant-id",
-    "jobName": "sal_out_bound",
-    "fromTime": 1738771200000,
-    "toTime": 1738857600000
-  }'
+curl "http://localhost:3000/api/mini/statements?from=2026-02-01&to=2026-02-28" \
+  -H "Authorization: Bearer <customer_access_token>"
+
+curl "http://localhost:3000/api/mini/statements/<statementId>" \
+  -H "Authorization: Bearer <customer_access_token>"
+
+curl -X POST "http://localhost:3000/api/mini/statements/<statementId>/confirm" \
+  -H "Authorization: Bearer <customer_access_token>" \
+  -H 'Content-Type: application/json' \
+  -d '{"remark":"确认无误"}'
 ```
 
-2) 查看同步状态：
+### 5.6 商城下单（M3）
+
+管理端先创建商品与 SKU（SKU 需配置 `unitId` 与 `kingdeeMaterialId`，用于写回金蝶）：
 
 ```bash
-curl "http://localhost:3000/admin/sync/status?tenantId=your-tenant-id" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+curl -X POST http://localhost:3000/api/admin/products/upsert \
+  -H 'Authorization: Bearer dev-admin-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"SPU-1001","name":"演示商品","status":"ACTIVE","defaultUnitId":"Pcs","kingdeeMaterialId":"MAT-1001"}'
+
+curl -X POST http://localhost:3000/api/admin/products/<productId>/sku/upsert \
+  -H 'Authorization: Bearer dev-admin-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"skuCode":"SKU-1001","skuName":"标准件","price":88.5,"stock":50,"unitId":"Pcs","kingdeeMaterialId":"MAT-1001","status":"ACTIVE","specs":{"颜色":"蓝色"}}'
 ```
 
-### 定时任务（node-cron）
-
-- 每天凌晨 2 点：`master_data_full`（客户、供应商、商品、库存）
-- 每小时：`documents_incremental`（订单、出入库、发票、收付款）
-
-### 演示：销售出库单列表 -> 详情 同步
-
-1. 先写入 tenant（确保有 `clientId/clientSecret/app_key/app_secret/domain`）。
-2. 手动触发：
+小程序链路：
 
 ```bash
-curl -X POST http://localhost:3000/admin/sync/run \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -d '{
-    "tenantId": "your-tenant-id",
-    "jobName": "sal_out_bound"
-  }'
+curl "http://localhost:3000/api/mini/products?page=1&pageSize=20" \
+  -H "Authorization: Bearer <customer_access_token>"
+
+curl -X POST "http://localhost:3000/api/mini/cart/items" \
+  -H "Authorization: Bearer <customer_access_token>" \
+  -H 'Content-Type: application/json' \
+  -d '{"skuId":"<skuId>","qty":2}'
+
+curl -X POST "http://localhost:3000/api/mini/orders" \
+  -H "Authorization: Bearer <customer_access_token>" \
+  -H 'x-idempotency-key: order-idem-0001' \
+  -H 'Content-Type: application/json' \
+  -d '{"remark":"线下结算"}'
 ```
 
-3. 查询状态：
+说明：
+
+- 下单会同步调用金蝶销售订单保存接口（从 `kingdee_endpoints.json` 读取）。
+- 成功状态：`CONFIRMED`；失败状态：`WRITEBACK_FAILED`（写入 `order_writeback_logs`，可走管理接口重试）。
+
+### 5.7 订单运营后台（M4）
 
 ```bash
-curl "http://localhost:3000/admin/sync/status?tenantId=your-tenant-id" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+curl "http://localhost:3000/api/admin/orders?page=1&pageSize=20&status=WRITEBACK_FAILED" \
+  -H "Authorization: Bearer dev-admin-token"
+
+curl "http://localhost:3000/api/admin/orders/<orderId>" \
+  -H "Authorization: Bearer dev-admin-token"
+
+curl -X POST "http://localhost:3000/api/admin/orders/<orderId>/retry-writeback" \
+  -H "Authorization: Bearer dev-admin-token"
+
+curl -X POST "http://localhost:3000/api/admin/orders/<orderId>/cancel" \
+  -H "Authorization: Bearer dev-admin-token" \
+  -H 'Content-Type: application/json' \
+  -d '{"remark":"客户申请取消"}'
 ```
 
-4. 查库看 raw 数据（列表和详情）：
+## 6. 同步与幂等
+
+- `sync:deliveries`：销售出库 list -> detail，同步到 raw + deliveries。
+- `sync:receipts`：收款 list -> detail，同步到 raw。
+- raw 幂等：`docType + kingdeeId + hash`。
+- 签收幂等：`delivery + idempotencyKey`，重复请求返回幂等成功。
+
+## 7. 数据模型（core）
+
+`prisma/core/schema.prisma` 当前核心表：
+
+- `kingdee_tokens`
+- `kingdee_raw_documents`
+- `customers`（含 `phone/access_token/token_expires_at`）
+- `deliveries`
+- `reconciliations`
+- `reconciliation_lines`
+- `sync_checkpoints`
+
+## 8. 验收命令
 
 ```bash
-psql "$DATABASE_URL" -c "
-SELECT biz_type, biz_id, pulled_at
-FROM kingdee_raw
-WHERE tenant_id = 'your-tenant-id'
-  AND biz_type IN ('sal_out_bound', 'sal_out_bound_detail')
-ORDER BY pulled_at DESC
-LIMIT 20;
-"
+npm run kd:live-check
+npm run smoke:core
+npm run smoke:mini
+npm run smoke:mall
+npm run smoke:mall:live
+npm run test
 ```
 
-## KingdeeApiClient（通用调用器）
+## 9. 常见报错排查
 
-代码位置：`src/modules/kingdee/kingdee-api.client.ts`
+| 问题 | 现象 | 排查建议 |
+|---|---|---|
+| 缺少凭据 | `KD_CONFIG_MISSING` | 检查 `.env` 的 `KD_CLIENT_ID/KD_CLIENT_SECRET/KD_APP_KEY/KD_APP_SECRET` |
+| 签名不一致 | 鉴权失败 | 检查 path 编码、参数双重编码、末尾换行 |
+| 时间戳过期 | 重复提交/时间偏差报错 | 校准服务器时间，保证毫秒时间戳 |
+| 网关地址错误 | 接口不可达或鉴权异常 | 核对 `KD_GW_ROUTER_ADDR` 与授权 domain |
+| token 失效 | `401` | 使用 `kd:live-check` 验证 refresh 链路 |
+| 无法小程序登录 | `MINI_UNAUTHORIZED` | 先调用 `/api/admin/customers/token/issue` 签发 token |
+| 订单写回参数错误 | `ORDER_WRITEBACK_PARAM_INVALID` | 检查 `customer_id/material_entity/unit_id/price/qty` 与 SKU 映射 |
+| 订单写回被远端拒绝 | `ORDER_WRITEBACK_REMOTE_REJECTED` | 看订单 `writebackLogs` 的 `requestId/traceId/summary` 并复核签名、权限、网关 |
 
-类型定义：
+## 10. 联调清单
 
-- `KingdeeHttpMethod = "GET" | "POST"`
-- `KingdeeQueryValue = string | number | boolean | null | undefined`
-- `KingdeeApiRequest`
-
-行为说明：
-
-- 固定请求基址：`https://api.kingdee.com/jdy`
-- 自动注入签名、token、router 头
-- `query` 同时用于 URL 与签名
-- 可靠性策略：
-  - `5xx/网络错误`：指数退避重试 3 次
-  - `401/鉴权失败`：自动刷新 token 后重试 1 次
-  - `重复提交/时间戳过期`：刷新 timestamp/nonce 立即重试 1 次
-
-## 小程序业务接口
-
-鉴权规则：
-
-- `POST /mini/login`：请求体传 `{ token }`
-- 其他 `/mini/*` 接口：请求头 `Authorization: Bearer <customer_access_token>`
-- `GET /mini/qrcode`：管理端接口，使用 `Authorization: Bearer <ADMIN_TOKEN>`
-
-### 一次性准备演示数据（SQL）
-
-先查一个 tenant：
-
-```bash
-psql "$DATABASE_URL" -c "SELECT id, app_key FROM kingdee_tenant LIMIT 1;"
-```
-
-写入 customer / delivery / statement 示例（把 `tenant-id` 和 `customer-id` 替换成真实值）：
-
-```bash
-psql "$DATABASE_URL" -c "
-INSERT INTO customer (id, tenant_id, name, phone, kingdee_customer_id, access_token, token_expires_at, created_at, updated_at)
-VALUES (
-  '11111111-1111-1111-1111-111111111111',
-  'tenant-id',
-  '张三门店',
-  '13800000000',
-  'KD_CUST_001',
-  'mini-token-001',
-  NOW() + INTERVAL '30 day',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (access_token) DO UPDATE SET updated_at = NOW();
-
-INSERT INTO delivery (id, tenant_id, customer_id, kingdee_doc_no, kingdee_doc_id, ship_date, items, status, created_at, updated_at)
-VALUES (
-  '22222222-2222-2222-2222-222222222222',
-  'tenant-id',
-  '11111111-1111-1111-1111-111111111111',
-  'SAL-OUT-20260206-001',
-  'KD_DOC_001',
-  NOW(),
-  '[{\"sku\":\"A001\",\"name\":\"测试商品\",\"qty\":2}]'::jsonb,
-  'PENDING',
-  NOW(),
-  NOW()
-)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO statement (id, tenant_id, customer_id, period_start, period_end, total_amount, currency, status, created_at, updated_at)
-VALUES (
-  '33333333-3333-3333-3333-333333333333',
-  'tenant-id',
-  '11111111-1111-1111-1111-111111111111',
-  '2026-02-01T00:00:00.000Z',
-  '2026-02-28T23:59:59.999Z',
-  1999.50,
-  'CNY',
-  'PENDING',
-  NOW(),
-  NOW()
-)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO statement_line (id, statement_id, doc_type, doc_no, doc_date, amount, raw, created_at)
-VALUES (
-  '44444444-4444-4444-4444-444444444444',
-  '33333333-3333-3333-3333-333333333333',
-  'sal_out_bound',
-  'SAL-OUT-20260206-001',
-  NOW(),
-  1999.50,
-  '{\"demo\":true}'::jsonb,
-  NOW()
-)
-ON CONFLICT DO NOTHING;
-"
-```
-
-### 小程序端调用示例
-
-1) 登录
-
-```bash
-curl -X POST http://localhost:3000/mini/login \
-  -H "Content-Type: application/json" \
-  -d '{"token":"mini-token-001"}'
-```
-
-2) 待签收列表
-
-```bash
-curl http://localhost:3000/mini/deliveries \
-  -H "Authorization: Bearer mini-token-001"
-```
-
-3) 发货单详情
-
-```bash
-curl http://localhost:3000/mini/deliveries/22222222-2222-2222-2222-222222222222 \
-  -H "Authorization: Bearer mini-token-001"
-```
-
-4) 签收提交（`signatureBase64`/`photosBase64` 可传 data URL 或纯 base64）
-
-```bash
-curl -X POST http://localhost:3000/mini/deliveries/22222222-2222-2222-2222-222222222222/sign \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer mini-token-001" \
-  -d '{
-    "signerName": "张三",
-    "signedAt": "2026-02-06T13:00:00.000Z",
-    "signatureBase64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-    "photosBase64": [],
-    "remark": "货物完好"
-  }'
-```
-
-5) 对账单列表
-
-```bash
-curl "http://localhost:3000/mini/statements?from=2026-02-01&to=2026-02-28" \
-  -H "Authorization: Bearer mini-token-001"
-```
-
-6) 对账单详情
-
-```bash
-curl http://localhost:3000/mini/statements/33333333-3333-3333-3333-333333333333 \
-  -H "Authorization: Bearer mini-token-001"
-```
-
-7) 确认对账单
-
-```bash
-curl -X POST http://localhost:3000/mini/statements/33333333-3333-3333-3333-333333333333/confirm \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer mini-token-001" \
-  -d '{
-    "confirmedAt": "2026-02-06T14:00:00.000Z",
-    "remark": "确认无误"
-  }'
-```
-
-8) 生成客户登录二维码（管理端）
-
-```bash
-curl "http://localhost:3000/mini/qrcode?token=mini-token-001" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"
-```
-
-## 已实现接口
-
-- `GET /`
-- `GET /health`
-- `POST /webhook/kingdee/auth`
-- `POST /admin/kingdee/tenant/upsert`
-- `GET /admin/kingdee/tenant/list`
-- `POST /admin/kingdee/token/refresh`
-- `GET /admin/kingdee/token/status`
-- `POST /admin/kingdee/proxy`
-- `POST /admin/sync/run`
-- `GET /admin/sync/status`
-- `POST /mini/login`
-- `GET /mini/deliveries`
-- `GET /mini/deliveries/:id`
-- `POST /mini/deliveries/:id/sign`
-- `GET /mini/statements`
-- `GET /mini/statements/:id`
-- `POST /mini/statements/:id/confirm`
-- `GET /mini/qrcode`
-- `POST /api/wechat/signoffs`
-- `GET /api/wechat/signoffs/:deliveryNo`
-
-详细示例见 `docs/api.md`。
+详见 `/Users/russell/小程序到货签收/docs/integration-checklist.md`。

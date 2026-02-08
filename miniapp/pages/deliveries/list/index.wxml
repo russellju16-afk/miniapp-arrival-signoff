@@ -1,7 +1,10 @@
 <view class="container">
   <view class="card actions">
+    <button class="btn-primary action-btn" bindtap="goProducts">商城</button>
+    <button class="btn-plain action-btn" bindtap="goOrders">订单</button>
     <button class="btn-primary action-btn" bindtap="goStatements">查看对账单</button>
     <button class="btn-plain action-btn" bindtap="refreshData">刷新</button>
+    <button class="btn-plain action-btn" bindtap="goMine">我的</button>
     <button class="btn-danger action-btn" bindtap="logout">退出登录</button>
   </view>
 
@@ -17,11 +20,15 @@
     <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
       <view class="row">
         <text class="label">单据号</text>
-        <text class="value">{{item.kingdee_doc_no}}</text>
+        <text class="value">{{item.kingdeeBillNumber || item.kingdee_doc_no || '-'}}</text>
       </view>
       <view class="row">
         <text class="label">发货日期</text>
-        <text class="value">{{item.ship_date_text}}</text>
+        <text class="value">{{item.ship_date_text || '-'}}</text>
+      </view>
+      <view class="row" wx:if="{{item.orderNo}}">
+        <text class="label">订单号</text>
+        <text class="value">{{item.orderNo}}</text>
       </view>
       <view class="row">
         <text class="label">状态</text>

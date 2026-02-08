@@ -1,13 +1,11 @@
 import { createHmac } from "node:crypto";
 
-function toUpperPercentEncoding(value: string): string {
+function uppercasePercentHex(value: string): string {
   return value.replace(/%[0-9a-fA-F]{2}/g, (segment) => segment.toUpperCase());
 }
 
-function encodeTwice(value: string): string {
-  const firstEncoded = encodeURIComponent(value);
-  const secondEncoded = encodeURIComponent(firstEncoded);
-  return toUpperPercentEncoding(secondEncoded);
+function doubleUrlEncode(value: string): string {
+  return uppercasePercentHex(encodeURIComponent(encodeURIComponent(value)));
 }
 
 function compareAscii(a: string, b: string): number {
@@ -31,11 +29,7 @@ export function buildParamString(params: Record<string, string>): string {
   }
 
   return keys
-    .map((key) => {
-      const encodedKey = encodeTwice(key);
-      const encodedValue = encodeTwice(params[key] ?? "");
-      return `${encodedKey}=${encodedValue}`;
-    })
+    .map((key) => `${doubleUrlEncode(key)}=${doubleUrlEncode(params[key] ?? "")}`)
     .join("&");
 }
 
@@ -47,13 +41,14 @@ export function buildStringToSign(
   timestamp: string
 ): string {
   const normalizedMethod = method.trim().toUpperCase();
-  const encodedPath = toUpperPercentEncoding(encodeURIComponent(path));
+  const encodedPath = uppercasePercentHex(encodeURIComponent(path));
   const paramString = buildParamString(params);
 
   return `${normalizedMethod}\n${encodedPath}\n${paramString}\nx-api-nonce:${nonce}\nx-api-timestamp:${timestamp}\n`;
 }
 
 export function genAppSignature(appKey: string, appSecret: string): string {
+  // app_signature = Base64( hexLower( HMAC_SHA256(appSecret, app_key) ) 的 UTF-8 字节 )
   const hmacHex = createHmac("sha256", appSecret).update(appKey, "utf8").digest("hex");
   return Buffer.from(hmacHex, "utf8").toString("base64");
 }
@@ -66,7 +61,8 @@ export function genXApiSignature(
   timestamp: string,
   clientSecret: string
 ): string {
-  const stringToSign = buildStringToSign(method, path, params, nonce, timestamp);
-  const hmacHex = createHmac("sha256", clientSecret).update(stringToSign, "utf8").digest("hex");
+  const signText = buildStringToSign(method, path, params, nonce, timestamp);
+  const hmacHex = createHmac("sha256", clientSecret).update(signText, "utf8").digest("hex");
+
   return Buffer.from(hmacHex, "utf8").toString("base64");
 }

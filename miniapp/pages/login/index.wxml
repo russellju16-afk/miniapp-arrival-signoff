@@ -1,30 +1,40 @@
-<view class="container">
-  <view class="card">
-    <view class="title">客户登录</view>
-    <view class="sub-title">请输入客户 access token，或扫码自动带入 token。</view>
+<view class="login-page">
+  <view class="hero">
+    <view class="hero-title">客户登录</view>
+    <view class="hero-sub">欢迎使用到货签收与商城系统</view>
+  </view>
 
-    <view class="field">
-      <view class="label">访问 Token</view>
+  <view class="card login-card">
+    <view class="label">访问 Token</view>
+    <view class="input-wrap">
       <input
         class="input"
-        placeholder="请输入 token"
+        placeholder="请输入客户 token"
         value="{{token}}"
         bindinput="onTokenInput"
+        bindconfirm="onTokenConfirm"
+        confirm-type="go"
       />
+      <view class="clear" wx:if="{{token}}" bindtap="onClearToken">清空</view>
     </view>
+    <view class="error" wx:if="{{tokenError}}">{{tokenError}}</view>
 
     <button class="btn-primary" bindtap="onSubmit" loading="{{loading}}" disabled="{{loading}}">
-      登录
+      {{loading ? '登录中...' : '登录'}}
     </button>
-    <button class="btn-plain" bindtap="onScanToken" disabled="{{loading}}">
-      扫码登录
-    </button>
+    <button class="btn-plain" bindtap="onScanToken" disabled="{{loading}}">扫码登录</button>
+  </view>
+
+  <view class="card clip-card" wx:if="{{showClipboardTip}}">
+    <view class="tips-title">检测到粘贴板 token</view>
+    <view class="sub-title token-preview">{{clipboardToken}}</view>
+    <button class="btn-plain" bindtap="onUseClipboardToken">一键填入</button>
   </view>
 
   <view class="card tips">
-    <view class="tips-title">调试提示</view>
-    <view class="tips-item">1. 先在后端写入 customer.access_token。</view>
-    <view class="tips-item">2. 真机调试时把 API 域名改成可访问地址。</view>
-    <view class="tips-item">3. 开发者工具可在“本地设置”关闭域名校验做本地联调。</view>
+    <view class="tips-title">登录说明</view>
+    <view class="tips-item">1. 支持手动输入、扫码自动识别 token。</view>
+    <view class="tips-item">2. 登录后会自动跳转到商城首页。</view>
+    <view class="tips-item">3. token 由管理员在后台签发。</view>
   </view>
 </view>

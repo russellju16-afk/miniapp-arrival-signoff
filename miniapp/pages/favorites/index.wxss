@@ -1,0 +1,14 @@
+.item {
+  margin-top: 16rpx;
+}
+
+.price {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.small-btn {
+  margin-top: 12rpx;
+  width: 220rpx;
+  font-size: 24rpx;
+}

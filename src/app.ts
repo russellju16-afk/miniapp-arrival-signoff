@@ -6,9 +6,10 @@ import { ZodError } from "zod";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { AppError } from "./modules/common/app-error";
+import { coreMiniCompatRoutes } from "./modules/core/core-mini-compat.route";
+import { coreRoutes } from "./modules/core/core.route";
 import { healthRoutes } from "./modules/health/health.route";
 import { kingdeeTenantRoutes } from "./modules/kingdee-tenant/kingdee-tenant.route";
-import { miniRoutes } from "./modules/mini/mini.route";
 import { syncRoutes } from "./modules/sync";
 import { wechatRoutes } from "./modules/wechat/wechat.route";
 
@@ -30,10 +31,29 @@ export function buildApp() {
     reply.header("x-request-id", request.id);
   });
 
+  app.addHook("onSend", async (request, reply, payload) => {
+    if (request.url.startsWith("/mini/")) {
+      // legacy 小程序路由保留兼容，主线已迁移到 /api/mini/*
+      reply.header("Deprecation", "true");
+      reply.header("Sunset", "Mon, 30 Jun 2026 00:00:00 GMT");
+      reply.header("Link", '</api/mini/login>; rel="successor-version"');
+    }
+    if (request.url.startsWith("/admin/sync/")) {
+      // legacy 同步管理路由保留兼容，主线已迁移到 /api/admin/sync/*
+      reply.header("Deprecation", "true");
+      reply.header("Sunset", "Mon, 30 Jun 2026 00:00:00 GMT");
+      reply.header("Link", '</api/admin/sync/run>; rel="successor-version"');
+    }
+    return payload;
+  });
+
   app.register(healthRoutes);
+  // core 主线：统一 /api/*
+  app.register(coreRoutes, { prefix: "/api" });
+  // legacy 兼容：/mini/* 内部转发到 core service
+  app.register(coreMiniCompatRoutes);
   app.register(kingdeeTenantRoutes);
   app.register(syncRoutes);
-  app.register(miniRoutes);
   app.register(wechatRoutes, { prefix: "/api" });
 
   app.setErrorHandler((error, request, reply) => {

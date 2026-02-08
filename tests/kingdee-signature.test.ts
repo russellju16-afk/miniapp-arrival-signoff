@@ -36,6 +36,38 @@ describe("kingdee-signature utils", () => {
     );
   });
 
+  test("X-Api-Signature: 规范样例固定向量对照（含 expectedSignText）", () => {
+    const params = {
+      page: "1",
+      pagesize: "100"
+    };
+
+    const expectedSignText =
+      "POST\n%2Fjdy%2Fv2%2Fbd%2Fcustomer\npage=1&pagesize=100\nx-api-nonce:1655775240000\nx-api-timestamp:1655775240000\n";
+
+    const signText = buildStringToSign(
+      "POST",
+      "/jdy/v2/bd/customer",
+      params,
+      "1655775240000",
+      "1655775240000"
+    );
+
+    expect(signText).toBe(expectedSignText);
+    expect(
+      genXApiSignature(
+        "POST",
+        "/jdy/v2/bd/customer",
+        params,
+        "1655775240000",
+        "1655775240000",
+        "client_secret_abc"
+      )
+    ).toBe(
+      "YWQ0YTJkMDRmMzEwYjFjNjU4NzQzMDkyYThkNzMxMzhiZDE1NmNhNmY2MDRjN2RiYTIxZTllNDIwODVmNmM0MQ=="
+    );
+  });
+
   test("genAppSignature: 同一输入稳定一致", () => {
     const appKey = "app_key_123";
     const appSecret = "app_secret_456";

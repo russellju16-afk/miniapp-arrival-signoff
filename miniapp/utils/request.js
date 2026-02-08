@@ -6,6 +6,7 @@ function request(options) {
     url,
     method = 'GET',
     data,
+    headers: customHeaders = {},
     needAuth = true,
     showLoading = false,
     loadingText = '加载中...'
@@ -17,7 +18,8 @@ function request(options) {
 
   return new Promise((resolve, reject) => {
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...customHeaders
     };
 
     if (needAuth) {
@@ -72,7 +74,7 @@ function request(options) {
 function redirectToLogin() {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1];
-  const currentPath = current ? `/${current.route}` : '/pages/deliveries/list/index';
+  const currentPath = current ? `/${current.route}` : '/pages/products/list/index';
   const redirect = encodeURIComponent(currentPath);
   wx.reLaunch({
     url: `/pages/login/index?redirect=${redirect}`

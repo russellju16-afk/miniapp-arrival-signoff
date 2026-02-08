@@ -1,0 +1,77 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{!order}}">
+    <view class="empty">订单不存在</view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="row">
+        <text class="title">{{order.orderNo}}</text>
+        <text class="status">{{order.status}}</text>
+      </view>
+      <view class="row">
+        <text class="label">总金额</text>
+        <text class="price">¥{{order.totalAmountText}}</text>
+      </view>
+      <view class="sub-title">结算方式：{{order.settlementMode}}</view>
+      <view class="sub-title">金蝶单号：{{order.kingdeeOrderNumber || '-'}}</view>
+      <view class="sub-title">下单时间：{{order.createdAtText}}</view>
+      <view class="sub-title" wx:if="{{order.writebackError}}">写回错误：{{order.writebackError}}</view>
+    </view>
+
+    <view class="card" wx:if="{{orderMeta}}">
+      <view class="title">结算信息</view>
+      <view class="sub-title" wx:if="{{orderMeta.address}}">收货人：{{orderMeta.address.receiver}} {{orderMeta.address.phone}}</view>
+      <view class="sub-title" wx:if="{{orderMeta.address}}">地址：{{orderMeta.address.province}}{{orderMeta.address.city}}{{orderMeta.address.district}}{{orderMeta.address.detail}}</view>
+      <view class="sub-title" wx:if="{{orderMeta.delivery}}">配送方式：{{orderMeta.delivery.label}}</view>
+      <view class="sub-title" wx:if="{{orderMeta.coupon}}">优惠券：{{orderMeta.coupon.name}}</view>
+      <view class="sub-title" wx:if="{{orderMeta.discountAmount > 0}}">优惠金额：¥{{orderMeta.discountAmountText}}</view>
+      <view class="sub-title" wx:if="{{orderMeta.payAmount >= 0}}">应付金额：¥{{orderMeta.payAmountText}}</view>
+    </view>
+
+    <view class="card">
+      <view class="title">订单明细</view>
+      <view class="line" wx:for="{{order.lines}}" wx:key="id">
+        <view class="row">
+          <text class="value">{{item.productName}}</text>
+          <text class="value">¥{{item.lineAmountText}}</text>
+        </view>
+        <view class="sub-title">{{item.skuName}}（{{item.skuCode}}）</view>
+        <view class="sub-title">数量：{{item.qty}}，单价：¥{{item.unitPriceText}}</view>
+      </view>
+    </view>
+
+    <view class="card" wx:if="{{order.deliveries.length > 0}}">
+      <view class="title">关联签收单</view>
+      <view class="line" wx:for="{{order.deliveries}}" wx:key="id">
+        <view class="row">
+          <text class="value">{{item.kingdeeBillNumber || item.id}}</text>
+          <text class="value">{{item.status}}</text>
+        </view>
+        <view class="sub-title">签收时间：{{item.signedAtText}}</view>
+      </view>
+    </view>
+
+    <view class="card" wx:if="{{order.canCancel}}">
+      <view class="title">取消订单</view>
+      <textarea
+        class="remark"
+        placeholder="取消原因（选填）"
+        maxlength="200"
+        value="{{cancelRemark}}"
+        bindinput="onCancelRemarkInput"
+      ></textarea>
+      <button class="btn-danger" loading="{{canceling}}" disabled="{{canceling}}" bindtap="cancelOrder">取消订单</button>
+    </view>
+
+    <view class="card actions">
+      <button class="btn-primary action-btn" loading="{{reordering}}" disabled="{{reordering}}" bindtap="reorder">再来一单</button>
+      <button class="btn-plain action-btn" bindtap="goDeliveries">查看签收</button>
+      <button class="btn-plain action-btn" bindtap="goStatements">查看对账</button>
+    </view>
+  </block>
+</view>

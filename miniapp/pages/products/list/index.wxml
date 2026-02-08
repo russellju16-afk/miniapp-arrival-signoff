@@ -1,0 +1,96 @@
+<view class="container">
+  <view class="card hero">
+    <view class="title">商城首页</view>
+    <view class="sub-title">共 {{total}} 件商品</view>
+
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="搜索商品名/编码"
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        bindconfirm="onSearch"
+        confirm-type="search"
+      />
+      <button class="btn-primary search-btn" bindtap="onSearch">搜索</button>
+      <button class="btn-plain search-btn" bindtap="onClearSearch">清空</button>
+    </view>
+
+    <view class="recent" wx:if="{{recentSearches.length > 0}}">
+      <view class="row">
+        <text class="label">最近搜索</text>
+        <text class="clear-recent" bindtap="onClearRecentSearch">清空记录</text>
+      </view>
+      <view class="chips">
+        <view class="chip" wx:for="{{recentSearches}}" wx:key="*this" data-keyword="{{item}}" bindtap="onUseRecentSearch">
+          {{item}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card actions">
+    <view class="action" bindtap="goCart">
+      <text class="action-title">购物车</text>
+      <text class="action-sub">{{cartQty}} 件</text>
+    </view>
+    <view class="action" bindtap="goFavorites">
+      <text class="action-title">收藏</text>
+      <text class="action-sub">{{favoritesCount}} 件</text>
+    </view>
+    <view class="action" bindtap="goOrders">
+      <text class="action-title">订单</text>
+      <text class="action-sub">查看全部</text>
+    </view>
+    <view class="action" bindtap="goMine">
+      <text class="action-title">我的</text>
+      <text class="action-sub">账户中心</text>
+    </view>
+  </view>
+
+  <view class="card quick-links">
+    <button class="btn-plain quick-btn" bindtap="goHistory">浏览足迹</button>
+    <button class="btn-plain quick-btn" bindtap="goCoupons">优惠券</button>
+    <button class="btn-plain quick-btn" bindtap="goDeliveries">签收中心</button>
+  </view>
+
+  <view class="card filter-row">
+    <view class="switch-wrap">
+      <text class="label">仅看有货</text>
+      <switch checked="{{stockOnly}}" color="#2563eb" bindchange="onToggleStockOnly" />
+    </view>
+    <picker mode="selector" range="{{sortOptions}}" range-key="label" value="{{sortIndex}}" bindchange="onSortChange">
+      <view class="picker">{{sortOptions[sortIndex].label}}</view>
+    </picker>
+  </view>
+
+  <block wx:if="{{loading && list.length === 0}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{list.length === 0}}">
+    <view class="empty">未找到匹配商品</view>
+  </block>
+
+  <block wx:else>
+    <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="row">
+        <text class="title">{{item.name}}</text>
+        <view class="fav {{item.isFavorite ? 'fav-active' : ''}}" catchtap="toggleFavorite" data-id="{{item.id}}">
+          {{item.isFavorite ? '已收藏' : '收藏'}}
+        </view>
+      </view>
+      <view class="sub-title">商品编码：{{item.code}}</view>
+      <view class="sub-title" wx:if="{{item.description}}">{{item.description}}</view>
+
+      <view class="row info-row">
+        <text class="stock">库存：{{item.totalStock}}</text>
+        <text class="price">¥{{item.minPriceText}} 起</text>
+      </view>
+      <view class="more">查看规格 ></view>
+    </view>
+
+    <view class="empty" wx:if="{{loading}}">正在加载更多...</view>
+    <view class="empty" wx:elif="{{!hasMore}}">没有更多商品了</view>
+  </block>
+</view>

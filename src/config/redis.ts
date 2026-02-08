@@ -7,7 +7,8 @@ const redisLogger = logger.child({ scope: "redis" });
 
 export const redis = new Redis(env.REDIS_URL, {
   lazyConnect: true,
-  maxRetriesPerRequest: 1
+  maxRetriesPerRequest: 1,
+  retryStrategy: () => null
 });
 
 redis.on("connect", () => {

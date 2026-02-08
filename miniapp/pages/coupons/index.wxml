@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="card tabs">
+    <view
+      class="tab {{tabIndex === index ? 'tab-active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="value"
+      data-index="{{index}}"
+      bindtap="onTabChange"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <block wx:if="{{displayList.length === 0}}">
+    <view class="card">
+      <view class="empty">当前分类暂无优惠券</view>
+      <button class="btn-primary" bindtap="goProducts">去下单</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card item {{item.status}}" wx:for="{{displayList}}" wx:key="id">
+      <view class="row">
+        <text class="title">{{item.name}}</text>
+        <text class="value-text">{{item.valueText}}</text>
+      </view>
+      <view class="sub-title">门槛：满 ¥{{item.minAmountText}}</view>
+      <view class="sub-title">有效期至：{{item.expireText}}</view>
+      <view class="status {{item.status}}">
+        {{item.status === 'AVAILABLE' ? '可用' : item.status === 'USED' ? '已使用' : '已过期'}}
+      </view>
+      <view class="sub-title" wx:if="{{item.description}}">说明：{{item.description}}</view>
+    </view>
+  </block>
+</view>

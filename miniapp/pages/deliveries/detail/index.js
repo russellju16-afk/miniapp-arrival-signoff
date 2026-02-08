@@ -33,8 +33,9 @@ Page({
       const res = await api.getDeliveryDetail(id);
       const detail = res.data || null;
 
-      const items = this.normalizeItems(detail && detail.items);
-      if (detail && detail.receipt) {
+      const detailsPayload = detail && (detail.details || detail.items || detail.entry || []);
+      const items = this.normalizeItems(detailsPayload);
+      if (detail && detail.receipt && detail.receipt.signed_at) {
         detail.receipt.signed_at_text = formatDateTime(detail.receipt.signed_at);
       }
 
@@ -42,7 +43,7 @@ Page({
         detail: detail
           ? {
               ...detail,
-              ship_date_text: formatDate(detail.ship_date)
+              ship_date_text: formatDate(detail.shipDate || detail.ship_date || detail.createdAt)
             }
           : null,
         items
@@ -61,6 +62,14 @@ Page({
     if (Array.isArray(raw)) {
       return raw;
     }
+    if (raw && typeof raw === 'object') {
+      if (Array.isArray(raw.material_entity)) {
+        return raw.material_entity;
+      }
+      if (Array.isArray(raw.entry)) {
+        return raw.entry;
+      }
+    }
     if (typeof raw === 'object') {
       return [raw];
     }
@@ -70,6 +79,18 @@ Page({
   goSign() {
     wx.navigateTo({
       url: `/pages/deliveries/sign/index?id=${this.data.id}`
+    });
+  },
+
+  goOrderDetail() {
+    const detail = this.data.detail || {};
+    const orderId = detail.orderId || detail.salesOrderId || detail.sales_order_id;
+    if (!orderId) {
+      wx.showToast({ title: '未关联订单', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/orders/detail/index?id=${orderId}`
     });
   },
 

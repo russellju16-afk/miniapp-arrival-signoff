@@ -1,0 +1,85 @@
+.actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.item {
+  margin-top: 16rpx;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.check {
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  border: 1rpx solid #cbd5e1;
+  color: #ffffff;
+  font-size: 22rpx;
+  margin-right: 12rpx;
+}
+
+.checked {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.qty-row {
+  margin-top: 14rpx;
+  align-items: center;
+}
+
+.qty-box {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.qty-btn {
+  width: 64rpx;
+  margin: 0;
+  padding: 0;
+}
+
+.qty-text {
+  width: 56rpx;
+  text-align: center;
+}
+
+.remove-btn {
+  margin: 0;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.price,
+.total {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.settlement {
+  margin-top: 16rpx;
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+}
+
+.select-all .label {
+  margin-left: 8rpx;
+}
+
+.summary-row {
+  margin: 16rpx 0;
+}

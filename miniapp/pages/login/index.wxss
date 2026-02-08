@@ -1,19 +1,67 @@
-.field {
-  margin: 24rpx 0;
+.login-page {
+  min-height: 100vh;
+  padding: 0 24rpx 24rpx;
+  background: linear-gradient(180deg, #dbeafe 0%, #f8fafc 40%, #f8fafc 100%);
+}
+
+.hero {
+  padding: 78rpx 10rpx 34rpx;
+}
+
+.hero-title {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hero-sub {
+  margin-top: 10rpx;
+  color: #475569;
+  font-size: 26rpx;
+}
+
+.login-card {
+  margin-top: 8rpx;
+}
+
+.input-wrap {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 14rpx;
+  background: #ffffff;
+  padding: 0 14rpx;
 }
 
 .input {
-  margin-top: 10rpx;
-  width: 100%;
-  min-height: 80rpx;
-  border: 1rpx solid #dbe2ea;
-  border-radius: 12rpx;
-  padding: 18rpx;
-  background: #f8fafc;
+  flex: 1;
+  min-height: 86rpx;
+}
+
+.clear {
+  color: #2563eb;
+  font-size: 24rpx;
+  padding: 10rpx;
+}
+
+.error {
+  margin-top: 8rpx;
+  color: #dc2626;
+  font-size: 24rpx;
 }
 
 button {
   margin-top: 20rpx;
+}
+
+.clip-card {
+  border: 1rpx solid #bfdbfe;
+}
+
+.token-preview {
+  margin-top: 8rpx;
+  word-break: break-all;
 }
 
 .tips {

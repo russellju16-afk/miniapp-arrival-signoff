@@ -1,0 +1,24 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{list.length === 0}}">
+    <view class="card">
+      <view class="empty">还没有收藏商品，快去逛逛吧。</view>
+      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card item" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="row">
+        <text class="title">{{item.name}}</text>
+        <text class="price">¥{{item.minPriceText}} 起</text>
+      </view>
+      <view class="sub-title">商品编码：{{item.code}}</view>
+      <view class="sub-title" wx:if="{{item.description}}">{{item.description}}</view>
+      <button class="btn-plain small-btn" catchtap="toggleFavorite" data-id="{{item.id}}">取消收藏</button>
+    </view>
+  </block>
+</view>

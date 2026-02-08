@@ -23,10 +23,11 @@ Page({
     try {
       this.setData({ loading: true });
       const res = await api.getDeliveries();
-      const rawList = Array.isArray(res.data) ? res.data : [];
+      const payload = res.data || {};
+      const rawList = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
       const list = rawList.map((item) => ({
         ...item,
-        ship_date_text: formatDate(item.ship_date)
+        ship_date_text: formatDate(item.shipDate || item.ship_date || item.createdAt)
       }));
       this.setData({ list });
     } catch (err) {
@@ -53,6 +54,24 @@ Page({
   goStatements() {
     wx.navigateTo({
       url: '/pages/statements/list/index'
+    });
+  },
+
+  goProducts() {
+    wx.navigateTo({
+      url: '/pages/products/list/index'
+    });
+  },
+
+  goOrders() {
+    wx.navigateTo({
+      url: '/pages/orders/list/index'
+    });
+  },
+
+  goMine() {
+    wx.navigateTo({
+      url: '/pages/mine/index'
     });
   },
 

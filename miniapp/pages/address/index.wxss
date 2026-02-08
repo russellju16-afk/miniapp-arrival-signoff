@@ -1,0 +1,75 @@
+.actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.item {
+  margin-top: 16rpx;
+}
+
+.tag {
+  color: #16a34a;
+  border: 1rpx solid #86efac;
+  background: #f0fdf4;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  padding: 2rpx 12rpx;
+}
+
+.ops {
+  margin-top: 14rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.mini-btn {
+  margin: 0;
+  font-size: 24rpx;
+  padding: 0 18rpx;
+}
+
+.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 999;
+}
+
+.panel {
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 24rpx;
+}
+
+.input {
+  width: 100%;
+  min-height: 78rpx;
+  margin-top: 12rpx;
+  border: 1rpx solid #dbe2ea;
+  border-radius: 10rpx;
+  padding: 14rpx;
+  background: #f8fafc;
+}
+
+.switch-row {
+  margin-top: 12rpx;
+}

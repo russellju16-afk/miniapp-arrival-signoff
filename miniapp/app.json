@@ -1,11 +1,22 @@
 {
   "pages": [
     "pages/login/index",
+    "pages/products/list/index",
+    "pages/products/detail/index",
+    "pages/cart/index",
+    "pages/checkout/index",
+    "pages/favorites/index",
+    "pages/history/index",
+    "pages/address/index",
+    "pages/coupons/index",
+    "pages/orders/list/index",
+    "pages/orders/detail/index",
     "pages/deliveries/list/index",
     "pages/deliveries/detail/index",
     "pages/deliveries/sign/index",
     "pages/statements/list/index",
-    "pages/statements/detail/index"
+    "pages/statements/detail/index",
+    "pages/mine/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",

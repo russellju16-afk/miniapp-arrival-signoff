@@ -1,173 +1,68 @@
-# API 说明
+# Core API 文档（主线：`/api/*`）
 
-## 1) 健康检查
+## 1. 通用响应
 
-- `GET /health`
-- 响应示例：
+成功：
 
 ```json
 {
   "ok": true,
-  "time": "2026-02-06T12:00:00.000Z",
-  "env": "development"
+  "requestId": "xxx",
+  "data": {}
 }
 ```
 
-## 2) 金蝶授权 Webhook
-
-- `POST /webhook/kingdee/auth`
-- 说明：接收金蝶推送授权信息并按 `app_key` upsert 到 `kingdee_tenant`。
-- 请求体（示例）：
+失败：
 
 ```json
 {
-  "name": "总部账套",
-  "client_id": "client-id",
-  "client_secret": "client-secret",
-  "app_key": "app-key",
-  "app_secret": "app-secret",
-  "domain": "https://api.kingdee.com"
+  "ok": false,
+  "code": "ERROR_CODE",
+  "message": "错误描述",
+  "requestId": "xxx",
+  "details": null
 }
 ```
 
-- 响应：
+## 2. 健康与诊断
+
+- `GET /api/health`
+- `GET /api/kd/ping`
+- 命令行诊断：`npm run kd:live-check`
+
+## 3. 金蝶业务读取（首批）
+
+- `GET /api/kd/customer/list`
+- `GET /api/kd/sales/outbound/list`
+- `GET /api/kd/sales/outbound/detail?id=...|number=...`
+- `GET /api/kd/receipt/list`
+- `GET /api/kd/receipt/detail?id=...|number=...`
+
+说明：query 参数会参与签名。
+
+## 4. 同步任务
+
+- `POST /api/kd/sync/deliveries`
+- `POST /api/kd/sync/receipts`
+
+请求体：
 
 ```json
 {
-  "ok": true
-}
-```
-
-## 3) 管理接口：手工 upsert tenant
-
-- `POST /admin/kingdee/tenant/upsert`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-- 请求体：
-
-```json
-{
-  "name": "总部账套",
-  "clientId": "client-id",
-  "clientSecret": "client-secret",
-  "app_key": "app-key",
-  "app_secret": "app-secret",
-  "domain": "https://api.kingdee.com",
-  "app_token": "optional-app-token",
-  "token_expires_at": "2026-02-07T00:00:00.000Z"
-}
-```
-
-## 4) 管理接口：tenant 列表
-
-- `GET /admin/kingdee/tenant/list`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-## 5) 管理接口：刷新 app-token
-
-- `POST /admin/kingdee/token/refresh`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-- 请求体：
-
-```json
-{
-  "tenantId": "tenant-id"
-}
-```
-
-## 6) 管理接口：token 状态
-
-- `GET /admin/kingdee/token/status`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-## 7) 管理接口：金蝶代理调试
-
-- `POST /admin/kingdee/proxy`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-- 请求体：
-
-```json
-{
-  "tenantId": "tenant-id",
-  "method": "POST",
-  "path": "/v2/bd/customer",
-  "query": {
-    "pagesize": 100,
-    "page": 1
-  },
-  "body": {
-    "name": "测试客户"
-  }
-}
-```
-
-- 响应：
-  - 透传金蝶返回 JSON（用于调试接口连通性）
-
-## 8) 管理接口：手动触发同步
-
-- `POST /admin/sync/run`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
-
-- 请求体：
-
-```json
-{
-  "tenantId": "tenant-id",
-  "jobName": "sal_out_bound",
   "fromTime": 1738771200000,
   "toTime": 1738857600000
 }
 ```
 
-- 响应示例：
+响应会包含 `warnings`（例如详情接口 id 失败后自动回退 number）。
 
-```json
-{
-  "ok": true,
-  "requestId": "...",
-  "data": {
-    "tenantId": "tenant-id",
-    "jobName": "sal_out_bound",
-    "fromTime": 1738771200000,
-    "toTime": 1738857600000,
-    "totalPulled": 120,
-    "totalInserted": 95,
-    "totalSkipped": 25,
-    "warnings": []
-  }
-}
-```
+## 5. 小程序主线接口（Bearer customer access token）
 
-## 9) 管理接口：同步状态
+### 5.1 登录
 
-- `GET /admin/sync/status?tenantId=tenant-id`
-- Header：
-  - `Authorization: Bearer <ADMIN_TOKEN>`
+- `POST /api/mini/login`
 
-## 10) 微信小程序签收上报
-
-- `POST /api/wechat/signoffs`
-- Header：
-  - `x-idempotency-key: <唯一幂等键>`（也可放在 body 的 `idempotencyKey`）
-  - `x-request-id: <可选请求ID>`
-
-## 11) 查询签收记录
-
-- `GET /api/wechat/signoffs/:deliveryNo`
-
-## 12) 小程序登录
-
-- `POST /mini/login`
-- 请求体：
+请求体：
 
 ```json
 {
@@ -175,63 +70,207 @@
 }
 ```
 
-## 13) 小程序待签收列表
+### 5.2 发货单
 
-- `GET /mini/deliveries`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
+- `GET /api/mini/deliveries?page=1&pageSize=20`
+- `GET /api/mini/deliveries/:id`
+- `POST /api/mini/deliveries/:id/sign`
 
-## 14) 小程序发货单详情
-
-- `GET /mini/deliveries/:id`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
-
-## 15) 小程序签收提交
-
-- `POST /mini/deliveries/:id/sign`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
-- 请求体：
+签收请求体：
 
 ```json
 {
   "signerName": "张三",
-  "signedAt": "2026-02-06T13:00:00.000Z",
+  "signedAt": "2026-02-08T10:00:00.000Z",
   "signatureBase64": "data:image/png;base64,...",
   "photosBase64": ["data:image/jpeg;base64,..."],
-  "remark": "货物完好"
+  "remark": "货物完好",
+  "idempotencyKey": "sign-idem-0001"
 }
 ```
 
-## 16) 小程序对账单列表
+幂等键支持：
+- header: `x-idempotency-key`
+- body: `idempotencyKey`
 
-- `GET /mini/statements?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
+### 5.3 对账单
 
-## 17) 小程序对账单详情
+- `GET /api/mini/statements?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /api/mini/statements/:id`
+- `POST /api/mini/statements/:id/confirm`
 
-- `GET /mini/statements/:id`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
-
-## 18) 小程序确认对账单
-
-- `POST /mini/statements/:id/confirm`
-- Header:
-  - `Authorization: Bearer <customer_access_token>`
-- 请求体：
+确认请求体：
 
 ```json
 {
-  "confirmedAt": "2026-02-06T14:00:00.000Z",
+  "confirmedAt": "2026-02-08T12:00:00.000Z",
   "remark": "确认无误"
 }
 ```
 
-## 19) 生成二维码（管理端）
+### 5.4 商城（M3）
 
-- `GET /mini/qrcode?token=xxx`
-- Header:
-  - `Authorization: Bearer <ADMIN_TOKEN>`
+- `GET /api/mini/products?page=1&pageSize=20`
+- `GET /api/mini/products/:id`
+- `GET /api/mini/cart`
+- `POST /api/mini/cart/items`
+- `PATCH /api/mini/cart/items/:id`
+- `DELETE /api/mini/cart/items/:id`
+- `POST /api/mini/orders`
+- `GET /api/mini/orders?page=1&pageSize=20&status=CONFIRMED`
+- `GET /api/mini/orders/:id`
+- `POST /api/mini/orders/:id/cancel`
+
+加购物车请求体：
+
+```json
+{
+  "skuId": "sku-uuid",
+  "qty": 2
+}
+```
+
+下单请求体（`items` 为空时默认按当前购物车下单）：
+
+```json
+{
+  "remark": "线下结算",
+  "items": [
+    { "skuId": "sku-uuid", "qty": 2 }
+  ]
+}
+```
+
+下单幂等要求：
+
+- header: `x-idempotency-key`（推荐）
+- 同 `customer + key` 重复提交会直接返回首单结果
+
+## 6. 管理接口（Bearer ADMIN_TOKEN）
+
+- `POST /api/admin/customers/token/issue`
+- `GET /api/admin/customers`
+- `POST /api/admin/products/upsert`
+- `GET /api/admin/products`
+- `POST /api/admin/products/:id/sku/upsert`
+- `GET /api/admin/orders`
+- `GET /api/admin/orders/:id`
+- `POST /api/admin/orders/:id/retry-writeback`
+- `POST /api/admin/orders/:id/cancel`
+- `POST /api/admin/sync/run`
+- `GET /api/admin/sync/status`
+
+说明：`/api/admin/sync/*` 已迁移到 core 同步引擎（SQLite），支持 `jobName=sync:deliveries|sync:receipts|sync:all`（兼容别名如 `deliveries/receipts`）。
+
+### 6.1 签发/刷新客户访问 token
+
+`POST /api/admin/customers/token/issue`
+
+请求体（`customerId` 和 `kingdeeCustomerId` 至少一个）：
+
+```json
+{
+  "customerId": "uuid",
+  "kingdeeCustomerId": "KD-CUST-001",
+  "name": "客户A",
+  "phone": "13800000000",
+  "ttlDays": 30
+}
+```
+
+### 6.2 触发同步任务（core）
+
+`POST /api/admin/sync/run`
+
+请求体：
+
+```json
+{
+  "jobName": "sync:deliveries",
+  "fromTime": 1738771200000,
+  "toTime": 1738857600000
+}
+```
+
+`GET /api/admin/sync/status?jobName=sync:deliveries`
+
+### 6.3 商品与订单管理（M3）
+
+`POST /api/admin/products/upsert`
+
+```json
+{
+  "code": "SPU-1001",
+  "name": "演示商品",
+  "description": "可选",
+  "status": "ACTIVE",
+  "defaultUnitId": "Pcs",
+  "kingdeeMaterialId": "MAT-1001"
+}
+```
+
+`POST /api/admin/products/:id/sku/upsert`
+
+```json
+{
+  "skuCode": "SKU-1001",
+  "skuName": "标准件",
+  "price": 88.5,
+  "stock": 50,
+  "status": "ACTIVE",
+  "unitId": "Pcs",
+  "kingdeeMaterialId": "MAT-1001",
+  "specs": { "颜色": "蓝色", "尺码": "L" }
+}
+```
+
+`POST /api/admin/orders/:id/retry-writeback`：
+
+- 仅允许状态 `CREATED` / `WRITEBACK_FAILED` 重试
+- 重试成功后订单状态更新为 `CONFIRMED`
+- 响应包含 `beforeStatus/afterStatus/writeback(requestId/traceId/summary)` 便于追踪
+
+`GET /api/admin/orders?page=1&pageSize=20&status=WRITEBACK_FAILED&customerId=...&orderNo=SO`
+
+`GET /api/admin/orders/:id`：
+
+- 返回订单基础信息、客户信息、行项目、关联签收单、最近写回日志
+
+`POST /api/admin/orders/:id/cancel`：
+
+```json
+{
+  "remark": "客户申请取消"
+}
+```
+
+- 仅允许状态 `CREATED` / `WRITEBACK_FAILED`
+- 成功后状态变更为 `CANCELED`
+
+## 7. 兼容接口（deprecated）
+
+`/mini/*` 与 `/admin/sync/*` 仍可用，但响应头会返回：
+
+说明：`/admin/sync/*` 仅保留历史路径，内部已转发到与 `/api/admin/sync/*` 相同的 core 同步逻辑。
+
+- `Deprecation: true`
+- `Sunset: Mon, 30 Jun 2026 00:00:00 GMT`
+- `Link: </api/mini/login>; rel="successor-version"`（小程序）
+- `Link: </api/admin/sync/run>; rel="successor-version"`（同步管理）
+
+## 8. 常见错误码
+
+- `KD_CONFIG_MISSING`：缺少金蝶凭据
+- `KD_REQUIRED_PARAMS_MISSING`：调用接口缺少必填参数
+- `KD_HTTP_ERROR`：金蝶返回非 200
+- `KD_NETWORK_ERROR`：网络异常
+- `MINI_UNAUTHORIZED`：小程序 token 无效或缺失
+- `MINI_TOKEN_EXPIRED`：小程序 token 已过期
+- `DELIVERY_NOT_FOUND`：未找到签收单
+- `DELIVERY_ALREADY_SIGNED`：重复签收
+- `RECONCILIATION_NOT_FOUND`：未找到对账单
+- `ORDER_ITEMS_EMPTY`：下单商品为空
+- `ORDER_WRITEBACK_PARAM_INVALID`：订单写回请求参数不合法
+- `ORDER_WRITEBACK_REMOTE_REJECTED`：订单写回被金蝶远端拒绝
+- `ORDER_RETRY_NOT_ALLOWED`：当前订单状态不可重试写回
+- `ORDER_CANCEL_NOT_ALLOWED`：当前订单状态不可取消

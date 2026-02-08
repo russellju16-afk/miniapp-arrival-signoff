@@ -1,6 +1,7 @@
 import { buildApp } from "./app";
 import { env } from "./config/env";
 import { connectRedis, redis } from "./config/redis";
+import { connectCorePrisma, corePrisma } from "./db/core-prisma";
 import { connectPrisma, prisma } from "./db/prisma";
 import { startSyncScheduler, stopSyncScheduler } from "./modules/sync";
 
@@ -8,8 +9,8 @@ const app = buildApp();
 
 async function start(): Promise<void> {
   try {
-    await connectRedis();
-    await connectPrisma();
+    await connectCorePrisma();
+    await connectLegacyDependencies();
 
     await app.listen({
       host: "0.0.0.0",
@@ -31,6 +32,21 @@ async function start(): Promise<void> {
   }
 }
 
+async function connectLegacyDependencies(): Promise<void> {
+  try {
+    await connectRedis();
+  } catch (error) {
+    app.log.warn({ err: error }, "Redis 未连接，将以降级模式继续启动");
+    redis.disconnect();
+  }
+
+  try {
+    await connectPrisma();
+  } catch (error) {
+    app.log.warn({ err: error }, "PostgreSQL 未连接，将以 core(SQLite) 模式继续启动");
+  }
+}
+
 async function shutdown(signal: string): Promise<void> {
   app.log.info({ signal }, "Received shutdown signal");
 
@@ -38,6 +54,7 @@ async function shutdown(signal: string): Promise<void> {
     stopSyncScheduler();
     await app.close();
     await prisma.$disconnect();
+    await corePrisma.$disconnect();
 
     if (redis.status === "ready" || redis.status === "connecting") {
       await redis.quit();

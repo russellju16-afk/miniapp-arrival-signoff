@@ -54,11 +54,14 @@ Page({
     try {
       this.setData({ loading: true });
       const res = await api.getStatements({ from, to });
-      const rawList = Array.isArray(res.data) ? res.data : [];
+      const payload = res.data || {};
+      const rawList = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
       const list = rawList.map((item) => ({
         ...item,
-        period_text: `${formatDate(item.period_start)} ~ ${formatDate(item.period_end)}`,
-        total_amount_text: formatAmount(item.total_amount)
+        period_text: `${formatDate(item.periodStart || item.period_start)} ~ ${formatDate(
+          item.periodEnd || item.period_end
+        )}`,
+        total_amount_text: formatAmount(item.totalAmount || item.total_amount)
       }));
       this.setData({ list });
     } catch (err) {

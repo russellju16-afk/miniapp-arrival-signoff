@@ -1,0 +1,60 @@
+<view class="container">
+  <view class="card actions">
+    <button class="btn-plain action-btn" bindtap="goProducts">继续选品</button>
+    <button class="btn-plain action-btn" bindtap="goOrders">我的订单</button>
+    <button class="btn-plain action-btn" bindtap="goDeliveries">签收中心</button>
+  </view>
+
+  <block wx:if="{{loading && cart.items.length === 0}}">
+    <view class="empty">加载中...</view>
+  </block>
+
+  <block wx:elif="{{cart.items.length === 0}}">
+    <view class="card">
+      <view class="empty">购物车还是空的，先去选点商品吧。</view>
+      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card item" wx:for="{{cart.items}}" wx:key="id">
+      <view class="row">
+        <view class="check {{selectedMap[item.id] ? 'checked' : ''}}" data-id="{{item.id}}" bindtap="onToggleItem">
+          {{selectedMap[item.id] ? '✓' : ''}}
+        </view>
+        <text class="title flex-1">{{item.productName}}</text>
+        <text class="price">¥{{item.lineAmountText}}</text>
+      </view>
+
+      <view class="sub-title">{{item.skuName}}（{{item.skuCode}}）</view>
+      <view class="sub-title" wx:if="{{item.specsText}}">规格：{{item.specsText}}</view>
+
+      <view class="row qty-row">
+        <text class="label">单价 ¥{{item.unitPriceText}}</text>
+        <view class="qty-box">
+          <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onMinusQty">-</button>
+          <text class="qty-text">{{item.qty}}</text>
+          <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onPlusQty">+</button>
+          <button class="btn-plain remove-btn" data-id="{{item.id}}" bindtap="removeItem">移除</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="card settlement">
+      <view class="row">
+        <view class="select-all" bindtap="onToggleAll">
+          <view class="check {{allSelected ? 'checked' : ''}}">{{allSelected ? '✓' : ''}}</view>
+          <text class="label">全选</text>
+        </view>
+        <text class="sub-title">已选 {{selectedItemCount}} 款 / {{selectedQty}} 件</text>
+      </view>
+
+      <view class="row summary-row">
+        <text class="value">合计</text>
+        <text class="total">¥{{selectedAmountText}}</text>
+      </view>
+
+      <button class="btn-primary" bindtap="goCheckout">去结算</button>
+    </view>
+  </block>
+</view>

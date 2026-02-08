@@ -5,16 +5,19 @@ Page({
   data: {
     token: '',
     loading: false,
-    redirect: '/pages/deliveries/list/index'
+    redirect: '/pages/products/list/index',
+    tokenError: '',
+    clipboardToken: '',
+    showClipboardTip: false
   },
 
   onLoad(options) {
-    const redirect = options.redirect ? decodeURIComponent(options.redirect) : '/pages/deliveries/list/index';
+    const redirect = options.redirect ? decodeURIComponent(options.redirect) : '/pages/products/list/index';
     const tokenFromQuery = this.extractTokenFromOptions(options);
 
     this.setData({
       redirect,
-      token: tokenFromQuery || this.data.token
+      token: tokenFromQuery || ''
     });
 
     if (tokenFromQuery) {
@@ -25,22 +28,55 @@ Page({
     const session = auth.getSession();
     if (session && session.token) {
       wx.reLaunch({ url: redirect });
+      return;
     }
+
+    this.detectClipboardToken();
   },
 
   onTokenInput(e) {
-    this.setData({ token: e.detail.value.trim() });
+    const token = String(e.detail.value || '').trim();
+    this.setData({
+      token,
+      tokenError: token ? '' : this.data.tokenError
+    });
+  },
+
+  onTokenConfirm() {
+    this.onSubmit();
+  },
+
+  onClearToken() {
+    this.setData({
+      token: '',
+      tokenError: ''
+    });
+  },
+
+  onUseClipboardToken() {
+    const token = this.data.clipboardToken;
+    if (!token) {
+      return;
+    }
+
+    this.setData({
+      token,
+      tokenError: '',
+      showClipboardTip: false
+    });
   },
 
   async onSubmit() {
     const token = this.data.token.trim();
-    if (!token) {
-      wx.showToast({ title: '请输入 token', icon: 'none' });
+    const tokenError = this.validateToken(token);
+    if (tokenError) {
+      this.setData({ tokenError });
+      wx.showToast({ title: tokenError, icon: 'none' });
       return;
     }
 
     try {
-      this.setData({ loading: true });
+      this.setData({ loading: true, tokenError: '' });
       const res = await api.miniLogin(token);
       const customer = res.data || {};
 
@@ -51,7 +87,7 @@ Page({
       });
 
       wx.showToast({ title: '登录成功', icon: 'success' });
-      wx.reLaunch({ url: this.data.redirect || '/pages/deliveries/list/index' });
+      wx.reLaunch({ url: this.data.redirect || '/pages/products/list/index' });
     } catch (err) {
       wx.showToast({ title: err.message || '登录失败', icon: 'none' });
     } finally {
@@ -68,13 +104,44 @@ Page({
           wx.showToast({ title: '未识别到 token', icon: 'none' });
           return;
         }
-        this.setData({ token });
+        this.setData({ token, tokenError: '' });
         this.onSubmit();
       },
       fail: () => {
         wx.showToast({ title: '扫码取消或失败', icon: 'none' });
       }
     });
+  },
+
+  detectClipboardToken() {
+    wx.getClipboardData({
+      success: (res) => {
+        const token = this.extractTokenFromString((res && res.data) || '');
+        if (!token || token === this.data.token) {
+          return;
+        }
+
+        const err = this.validateToken(token);
+        if (err) {
+          return;
+        }
+
+        this.setData({
+          clipboardToken: token,
+          showClipboardTip: true
+        });
+      }
+    });
+  },
+
+  validateToken(token) {
+    if (!token) {
+      return '请输入 token';
+    }
+    if (token.length < 6) {
+      return 'token 长度不合法';
+    }
+    return '';
   },
 
   extractTokenFromOptions(options) {

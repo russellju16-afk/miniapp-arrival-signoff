@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/core-prisma-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DB_URL")
+}
+
+model KingdeeToken {
+  id        Int      @id @default(autoincrement())
+  env       String   @unique
+  appToken  String   @map("app_token")
+  expiresAt DateTime @map("expires_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("kingdee_tokens")
+}
+
+model KingdeeRawDocument {
+  id          Int      @id @default(autoincrement())
+  docType     String   @map("doc_type")
+  kingdeeId   String?  @map("kingdee_id")
+  number      String?
+  payloadJson String   @map("payload_json")
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+  hash        String
+
+  @@index([docType, fetchedAt], map: "kingdee_raw_documents_type_fetched_idx")
+  @@index([kingdeeId], map: "kingdee_raw_documents_kingdee_id_idx")
+  @@map("kingdee_raw_documents")
+}
+
+model Customer {
+  id                String           @id @default(uuid())
+  name              String
+  phone             String?
+  kingdeeCustomerId String?          @map("kingdee_customer_id")
+  wechatOpenid      String?          @map("wechat_openid")
+  accessToken       String?          @unique @map("access_token")
+  tokenExpiresAt    DateTime?        @map("token_expires_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  deliveries        Delivery[]
+  reconciliations   Reconciliation[]
+  cart              Cart?
+  cartItems         CartItem[]
+  salesOrders       SalesOrder[]
+
+  @@index([accessToken], map: "customers_access_token_idx")
+  @@index([tokenExpiresAt], map: "customers_token_expires_at_idx")
+  @@index([phone], map: "customers_phone_idx")
+  @@index([wechatOpenid], map: "customers_wechat_openid_idx")
+  @@index([kingdeeCustomerId], map: "customers_kingdee_customer_id_idx")
+  @@map("customers")
+}
+
+model Delivery {
+  id                String    @id @default(uuid())
+  customerId        String    @map("customer_id")
+  salesOrderId      String?   @map("sales_order_id")
+  kingdeeBillId     String?   @map("kingdee_bill_id")
+  kingdeeBillNumber String?   @map("kingdee_bill_number")
+  sourceDocNo       String?   @map("source_doc_no")
+  detailsJson       String?   @map("details_json")
+  syncedAt          DateTime? @map("synced_at")
+  status            String    @default("PENDING")
+  signedAt          DateTime? @map("signed_at")
+  signedPayloadJson String?   @map("signed_payload_json")
+  signIdempotencyKey String?  @map("sign_idempotency_key")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  salesOrder        SalesOrder? @relation(fields: [salesOrderId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, status], map: "deliveries_customer_status_idx")
+  @@index([signIdempotencyKey], map: "deliveries_sign_idempotency_key_idx")
+  @@index([kingdeeBillId], map: "deliveries_kingdee_bill_id_idx")
+  @@index([kingdeeBillNumber], map: "deliveries_kingdee_bill_number_idx")
+  @@index([salesOrderId], map: "deliveries_sales_order_id_idx")
+  @@map("deliveries")
+}
+
+model Reconciliation {
+  id            String              @id @default(uuid())
+  customerId    String              @map("customer_id")
+  periodStart   DateTime            @map("period_start")
+  periodEnd     DateTime            @map("period_end")
+  statementJson String              @map("statement_json")
+  status        String              @default("PENDING")
+  confirmedAt   DateTime?           @map("confirmed_at")
+  confirmRemark String?             @map("confirm_remark")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  customer      Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lines         ReconciliationLine[]
+
+  @@index([customerId, periodStart, periodEnd], map: "reconciliations_customer_period_idx")
+  @@map("reconciliations")
+}
+
+model ReconciliationLine {
+  id               Int            @id @default(autoincrement())
+  reconciliationId String         @map("reconciliation_id")
+  docType          String         @map("doc_type")
+  docNo            String?        @map("doc_no")
+  docDate          DateTime?      @map("doc_date")
+  amount           Float          @default(0)
+  rawJson          String         @map("raw_json")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationId], map: "reconciliation_lines_reconciliation_id_idx")
+  @@index([docType, docNo], map: "reconciliation_lines_doc_idx")
+  @@map("reconciliation_lines")
+}
+
+model SyncCheckpoint {
+  id           Int      @id @default(autoincrement())
+  scope        String   @unique
+  jobName      String   @map("job_name")
+  cursorJson   String   @map("cursor_json")
+  status       String
+  errorMessage String?  @map("error_message")
+  lastRunAt    DateTime @map("last_run_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([jobName, updatedAt], map: "sync_checkpoints_job_updated_idx")
+  @@map("sync_checkpoints")
+}
+
+model Product {
+  id               String      @id @default(uuid())
+  code             String      @unique
+  name             String
+  description      String?
+  coverImageUrl    String?     @map("cover_image_url")
+  status           String      @default("ACTIVE")
+  defaultUnitId    String?     @map("default_unit_id")
+  kingdeeMaterialId String?    @map("kingdee_material_id")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  skus             ProductSku[]
+  cartItems        CartItem[]
+  orderLines       SalesOrderLine[]
+
+  @@index([status], map: "products_status_idx")
+  @@map("products")
+}
+
+model ProductSku {
+  id              String       @id @default(uuid())
+  productId       String       @map("product_id")
+  skuCode         String       @unique @map("sku_code")
+  skuName         String       @map("sku_name")
+  specsJson       String?      @map("specs_json")
+  price           Float
+  stock           Int          @default(0)
+  status          String       @default("ACTIVE")
+  unitId          String?      @map("unit_id")
+  kingdeeMaterialId String?    @map("kingdee_material_id")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems       CartItem[]
+  orderLines      SalesOrderLine[]
+
+  @@index([productId, status], map: "product_skus_product_status_idx")
+  @@map("product_skus")
+}
+
+model Cart {
+  id         String     @id @default(uuid())
+  customerId String     @unique @map("customer_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         String    @id @default(uuid())
+  cartId     String    @map("cart_id")
+  customerId String    @map("customer_id")
+  productId  String    @map("product_id")
+  skuId      String    @map("sku_id")
+  qty        Int
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  cart       Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        ProductSku @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, skuId], map: "cart_items_cart_sku_unique")
+  @@index([customerId], map: "cart_items_customer_idx")
+  @@map("cart_items")
+}
+
+model SalesOrder {
+  id                String             @id @default(uuid())
+  orderNo           String             @unique @map("order_no")
+  customerId        String             @map("customer_id")
+  status            String             @default("CREATED")
+  settlementMode    String             @default("OFFLINE") @map("settlement_mode")
+  currency          String             @default("CNY")
+  totalAmount       Float              @default(0) @map("total_amount")
+  remark            String?
+  idempotencyKey    String?            @map("idempotency_key")
+  kingdeeOrderId    String?            @map("kingdee_order_id")
+  kingdeeOrderNumber String?           @map("kingdee_order_number")
+  writebackError    String?            @map("writeback_error")
+  canceledAt        DateTime?          @map("canceled_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  customer          Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lines             SalesOrderLine[]
+  writebackLogs     OrderWritebackLog[]
+  deliveries        Delivery[]
+
+  @@index([customerId, status], map: "sales_orders_customer_status_idx")
+  @@index([customerId, idempotencyKey], map: "sales_orders_customer_idem_idx")
+  @@index([kingdeeOrderNumber], map: "sales_orders_kingdee_number_idx")
+  @@map("sales_orders")
+}
+
+model SalesOrderLine {
+  id            String      @id @default(uuid())
+  salesOrderId  String      @map("sales_order_id")
+  productId     String      @map("product_id")
+  skuId         String      @map("sku_id")
+  productName   String      @map("product_name")
+  skuName       String      @map("sku_name")
+  skuCode       String      @map("sku_code")
+  qty           Int
+  unitPrice     Float       @map("unit_price")
+  lineAmount    Float       @map("line_amount")
+  rawJson       String?     @map("raw_json")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  salesOrder    SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku           ProductSku  @relation(fields: [skuId], references: [id], onDelete: Restrict)
+
+  @@index([salesOrderId], map: "sales_order_lines_order_idx")
+  @@map("sales_order_lines")
+}
+
+model OrderWritebackLog {
+  id           String      @id @default(uuid())
+  salesOrderId String      @map("sales_order_id")
+  success      Boolean
+  requestId    String?     @map("request_id")
+  traceId      String?     @map("trace_id")
+  summary      String?
+  requestJson  String      @map("request_json")
+  responseJson String?     @map("response_json")
+  errorCode    String?     @map("error_code")
+  errorMessage String?     @map("error_message")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  salesOrder   SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([salesOrderId, createdAt], map: "order_writeback_logs_order_created_idx")
+  @@map("order_writeback_logs")
+}

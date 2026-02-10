@@ -33,27 +33,130 @@ model KingdeeRawDocument {
 }
 
 model Customer {
-  id                String           @id @default(uuid())
-  name              String
-  phone             String?
-  kingdeeCustomerId String?          @map("kingdee_customer_id")
-  wechatOpenid      String?          @map("wechat_openid")
-  accessToken       String?          @unique @map("access_token")
-  tokenExpiresAt    DateTime?        @map("token_expires_at")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-  deliveries        Delivery[]
-  reconciliations   Reconciliation[]
-  cart              Cart?
-  cartItems         CartItem[]
-  salesOrders       SalesOrder[]
+  id                       String                            @id @default(uuid())
+  name                     String
+  phone                    String?
+  status                   String                            @default("ACTIVE")
+  companyName              String?                           @map("company_name")
+  contactName              String?                           @map("contact_name")
+  contactPhone             String?                           @map("contact_phone")
+  kingdeeCustomerId        String?                           @map("kingdee_customer_id")
+  wechatOpenid             String?                           @map("wechat_openid")
+  accessToken              String?                           @unique @map("access_token")
+  tokenExpiresAt           DateTime?                         @map("token_expires_at")
+  createdAt                DateTime                          @default(now()) @map("created_at")
+  updatedAt                DateTime                          @updatedAt @map("updated_at")
+  deliveries               Delivery[]
+  reconciliations          Reconciliation[]
+  cart                     Cart?
+  cartItems                CartItem[]
+  salesOrders              SalesOrder[]
+  registrationApplications CustomerRegistrationApplication[]
+  addresses                CustomerAddress[]
+  invoiceProfiles          InvoiceProfile[]
+  quoteRequests            QuoteRequest[]
+  invoiceRequests          InvoiceRequest[]
+  priceCaches              PriceCache[]
 
   @@index([accessToken], map: "customers_access_token_idx")
   @@index([tokenExpiresAt], map: "customers_token_expires_at_idx")
   @@index([phone], map: "customers_phone_idx")
+  @@index([status], map: "customers_status_idx")
   @@index([wechatOpenid], map: "customers_wechat_openid_idx")
   @@index([kingdeeCustomerId], map: "customers_kingdee_customer_id_idx")
   @@map("customers")
+}
+
+model CustomerRegistrationApplication {
+  id           String    @id @default(uuid())
+  customerId   String    @map("customer_id")
+  payloadJson  String    @map("payload_json")
+  status       String    @default("PENDING")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  reviewedAt   DateTime? @map("reviewed_at")
+  reviewRemark String?   @map("review_remark")
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, status], map: "customer_registration_apps_customer_status_idx")
+  @@map("customer_registration_applications")
+}
+
+model CustomerAddress {
+  id            String   @id @default(uuid())
+  customerId    String   @map("customer_id")
+  receiverName  String   @map("receiver_name")
+  receiverPhone String   @map("receiver_phone")
+  province      String
+  city          String
+  district      String
+  detail        String
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, isDefault], map: "customer_addresses_customer_default_idx")
+  @@map("customer_addresses")
+}
+
+model InvoiceProfile {
+  id              String           @id @default(uuid())
+  customerId      String           @map("customer_id")
+  title           String
+  taxNo           String           @map("tax_no")
+  bankName        String?          @map("bank_name")
+  bankAccount     String?          @map("bank_account")
+  addressPhone    String?          @map("address_phone")
+  email           String?
+  isDefault       Boolean          @default(false) @map("is_default")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoiceRequests InvoiceRequest[]
+
+  @@index([customerId, isDefault], map: "invoice_profiles_customer_default_idx")
+  @@map("invoice_profiles")
+}
+
+model QuoteRequest {
+  id         String   @id @default(uuid())
+  customerId String   @map("customer_id")
+  itemsJson  String   @map("items_json")
+  remark     String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, status], map: "quote_requests_customer_status_idx")
+  @@map("quote_requests")
+}
+
+model InvoiceRequest {
+  id               String          @id @default(uuid())
+  customerId       String          @map("customer_id")
+  orderIdsJson     String          @map("order_ids_json")
+  invoiceProfileId String?         @map("invoice_profile_id")
+  remark           String?
+  status           String          @default("PENDING")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  kingdeeRefId     String?         @map("kingdee_ref_id")
+  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoiceProfile   InvoiceProfile? @relation(fields: [invoiceProfileId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, status], map: "invoice_requests_customer_status_idx")
+  @@index([invoiceProfileId], map: "invoice_requests_profile_idx")
+  @@map("invoice_requests")
+}
+
+model Setting {
+  key       String   @id
+  valueJson String   @map("value_json")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
 }
 
 model Delivery {
@@ -165,9 +268,27 @@ model ProductSku {
   product           Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems         CartItem[]
   orderLines        SalesOrderLine[]
+  priceCaches       PriceCache[]
 
   @@index([productId, status], map: "product_skus_product_status_idx")
   @@map("product_skus")
+}
+
+model PriceCache {
+  id         String     @id @default(uuid())
+  customerId String     @map("customer_id")
+  skuId      String     @map("sku_id")
+  unitPrice  Float      @map("unit_price")
+  currency   String     @default("CNY")
+  source     String?
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sku        ProductSku @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, skuId], map: "price_caches_customer_sku_unique")
+  @@index([skuId], map: "price_caches_sku_idx")
+  @@map("price_caches")
 }
 
 model Cart {
@@ -209,6 +330,7 @@ model SalesOrder {
   currency           String              @default("CNY")
   totalAmount        Float               @default(0) @map("total_amount")
   remark             String?
+  deliveryInfoJson   String?             @map("delivery_info_json")
   idempotencyKey     String?             @map("idempotency_key")
   kingdeeOrderId     String?             @map("kingdee_order_id")
   kingdeeOrderNumber String?             @map("kingdee_order_number")

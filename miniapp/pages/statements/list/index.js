@@ -18,6 +18,8 @@ Page({
     from: getMonthStartText(),
     to: getTodayDateText(),
     loading: false,
+    errorMessage: '',
+    actionLoading: false,
     list: []
   },
 
@@ -41,6 +43,9 @@ Page({
   },
 
   search() {
+    if (this.data.loading) {
+      return;
+    }
     this.fetchList();
   },
 
@@ -52,7 +57,7 @@ Page({
     }
 
     try {
-      this.setData({ loading: true });
+      this.setData({ loading: true, errorMessage: '' });
       const res = await api.getStatements({ from, to });
       const payload = res.data || {};
       const rawList = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
@@ -65,27 +70,49 @@ Page({
       }));
       this.setData({ list });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
   },
 
   goDetail(e) {
+    if (this.data.actionLoading) {
+      return;
+    }
     const { id } = e.currentTarget.dataset;
     if (!id) {
       return;
     }
-
+    this.setData({ actionLoading: true });
     wx.navigateTo({
       url: `/pages/statements/detail/index?id=${id}`
     });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   },
 
   goDeliveries() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
     wx.navigateTo({
       url: '/pages/deliveries/list/index'
     });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
+  },
+
+  refreshData() {
+    if (this.data.loading) {
+      return;
+    }
+    this.fetchList();
   },
 
   ensureLogin() {

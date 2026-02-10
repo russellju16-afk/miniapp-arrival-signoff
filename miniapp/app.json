@@ -1,28 +1,71 @@
 {
   "pages": [
     "pages/login/index",
+    "pages/home/index",
     "pages/products/list/index",
     "pages/products/detail/index",
     "pages/cart/index",
     "pages/checkout/index",
-    "pages/favorites/index",
-    "pages/history/index",
     "pages/address/index",
-    "pages/coupons/index",
     "pages/orders/list/index",
     "pages/orders/detail/index",
+    "pages/invoice/profiles/index",
+    "pages/invoice/profile-edit/index",
+    "pages/invoice/request/index",
+    "pages/feedback/index",
     "pages/deliveries/list/index",
     "pages/deliveries/detail/index",
     "pages/deliveries/sign/index",
     "pages/statements/list/index",
     "pages/statements/detail/index",
+    "pages/favorites/index",
+    "pages/history/index",
+    "pages/coupons/index",
     "pages/mine/index"
   ],
+  "tabBar": {
+    "color": "#8A97A6",
+    "selectedColor": "#1677FF",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home_normal.png",
+        "selectedIconPath": "assets/tabbar/home_active.png"
+      },
+      {
+        "pagePath": "pages/products/list/index",
+        "text": "商品",
+        "iconPath": "assets/tabbar/products_normal.png",
+        "selectedIconPath": "assets/tabbar/products_active.png"
+      },
+      {
+        "pagePath": "pages/cart/index",
+        "text": "购物车",
+        "iconPath": "assets/tabbar/cart_normal.png",
+        "selectedIconPath": "assets/tabbar/cart_active.png"
+      },
+      {
+        "pagePath": "pages/orders/list/index",
+        "text": "订单",
+        "iconPath": "assets/tabbar/orders_normal.png",
+        "selectedIconPath": "assets/tabbar/orders_active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "assets/tabbar/mine_normal.png",
+        "selectedIconPath": "assets/tabbar/mine_active.png"
+      }
+    ]
+  },
   "window": {
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "线上签收与对账",
-    "backgroundColor": "#f6f7fb",
+    "navigationBarTitleText": "到货签收与订货",
+    "backgroundColor": "#F6F9FF",
     "backgroundTextStyle": "light"
   },
   "style": "v2",

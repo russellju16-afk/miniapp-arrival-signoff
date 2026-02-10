@@ -1,5 +1,6 @@
 const config = {
-  API_BASE_URL: 'https://brings-joel-physicians-syndrome.trycloudflare.com',
+  // 默认联调地址；若使用临时隧道（如 trycloudflare）请手动替换，隧道失效会出现 530。
+  API_BASE_URL: 'http://127.0.0.1:3000',
   REQUEST_TIMEOUT: 15000,
   USE_LEGACY_MINI_PATH: false,
   MINI_API_PREFIX: '/api/mini',

@@ -141,10 +141,81 @@ exports.Prisma.CustomerScalarFieldEnum = {
   id: 'id',
   name: 'name',
   phone: 'phone',
+  status: 'status',
+  companyName: 'companyName',
+  contactName: 'contactName',
+  contactPhone: 'contactPhone',
   kingdeeCustomerId: 'kingdeeCustomerId',
   wechatOpenid: 'wechatOpenid',
   accessToken: 'accessToken',
   tokenExpiresAt: 'tokenExpiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CustomerRegistrationApplicationScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  payloadJson: 'payloadJson',
+  status: 'status',
+  createdAt: 'createdAt',
+  reviewedAt: 'reviewedAt',
+  reviewRemark: 'reviewRemark'
+};
+
+exports.Prisma.CustomerAddressScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  receiverName: 'receiverName',
+  receiverPhone: 'receiverPhone',
+  province: 'province',
+  city: 'city',
+  district: 'district',
+  detail: 'detail',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InvoiceProfileScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  title: 'title',
+  taxNo: 'taxNo',
+  bankName: 'bankName',
+  bankAccount: 'bankAccount',
+  addressPhone: 'addressPhone',
+  email: 'email',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuoteRequestScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  itemsJson: 'itemsJson',
+  remark: 'remark',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InvoiceRequestScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  orderIdsJson: 'orderIdsJson',
+  invoiceProfileId: 'invoiceProfileId',
+  remark: 'remark',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  kingdeeRefId: 'kingdeeRefId'
+};
+
+exports.Prisma.SettingScalarFieldEnum = {
+  key: 'key',
+  valueJson: 'valueJson',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -229,6 +300,17 @@ exports.Prisma.ProductSkuScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PriceCacheScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  skuId: 'skuId',
+  unitPrice: 'unitPrice',
+  currency: 'currency',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.CartScalarFieldEnum = {
   id: 'id',
   customerId: 'customerId',
@@ -256,6 +338,7 @@ exports.Prisma.SalesOrderScalarFieldEnum = {
   currency: 'currency',
   totalAmount: 'totalAmount',
   remark: 'remark',
+  deliveryInfoJson: 'deliveryInfoJson',
   idempotencyKey: 'idempotencyKey',
   kingdeeOrderId: 'kingdeeOrderId',
   kingdeeOrderNumber: 'kingdeeOrderNumber',
@@ -309,12 +392,19 @@ exports.Prisma.ModelName = {
   KingdeeToken: 'KingdeeToken',
   KingdeeRawDocument: 'KingdeeRawDocument',
   Customer: 'Customer',
+  CustomerRegistrationApplication: 'CustomerRegistrationApplication',
+  CustomerAddress: 'CustomerAddress',
+  InvoiceProfile: 'InvoiceProfile',
+  QuoteRequest: 'QuoteRequest',
+  InvoiceRequest: 'InvoiceRequest',
+  Setting: 'Setting',
   Delivery: 'Delivery',
   Reconciliation: 'Reconciliation',
   ReconciliationLine: 'ReconciliationLine',
   SyncCheckpoint: 'SyncCheckpoint',
   Product: 'Product',
   ProductSku: 'ProductSku',
+  PriceCache: 'PriceCache',
   Cart: 'Cart',
   CartItem: 'CartItem',
   SalesOrder: 'SalesOrder',

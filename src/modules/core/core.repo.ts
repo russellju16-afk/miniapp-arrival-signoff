@@ -4,6 +4,10 @@ import { corePrisma } from "../../db/core-prisma";
 export interface CreateCustomerInput {
   name: string;
   phone?: string | null;
+  status?: string;
+  companyName?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
   kingdeeCustomerId?: string | null;
   wechatOpenid?: string | null;
   accessToken?: string | null;
@@ -80,6 +84,15 @@ export interface OrderLineInput {
   rawJson?: string | null;
 }
 
+export interface DeliveryInfoInput {
+  mode: "DELIVERY" | "PICKUP";
+  addressId?: string | null;
+  expectedDate?: string | null;
+  timeSlot?: string | null;
+  unloadingRequirement?: string | null;
+  note?: string | null;
+}
+
 class CoreRepo {
   async getTokenByEnv(currentEnv: string) {
     return corePrisma.kingdeeToken.findUnique({
@@ -111,6 +124,10 @@ class CoreRepo {
       data: {
         name: input.name,
         phone: input.phone ?? null,
+        status: input.status ?? "ACTIVE",
+        companyName: input.companyName ?? null,
+        contactName: input.contactName ?? null,
+        contactPhone: input.contactPhone ?? null,
         kingdeeCustomerId: input.kingdeeCustomerId ?? null,
         wechatOpenid: input.wechatOpenid ?? null,
         accessToken: input.accessToken ?? null,
@@ -134,8 +151,14 @@ class CoreRepo {
     input: {
       name?: string;
       phone?: string | null;
+      status?: string;
+      companyName?: string | null;
+      contactName?: string | null;
+      contactPhone?: string | null;
       kingdeeCustomerId?: string | null;
       wechatOpenid?: string | null;
+      accessToken?: string | null;
+      tokenExpiresAt?: Date | null;
     }
   ) {
     return corePrisma.customer.update({
@@ -143,10 +166,16 @@ class CoreRepo {
       data: {
         ...(typeof input.name !== "undefined" ? { name: input.name } : {}),
         ...(typeof input.phone !== "undefined" ? { phone: input.phone } : {}),
+        ...(typeof input.status !== "undefined" ? { status: input.status } : {}),
+        ...(typeof input.companyName !== "undefined" ? { companyName: input.companyName } : {}),
+        ...(typeof input.contactName !== "undefined" ? { contactName: input.contactName } : {}),
+        ...(typeof input.contactPhone !== "undefined" ? { contactPhone: input.contactPhone } : {}),
         ...(typeof input.kingdeeCustomerId !== "undefined"
           ? { kingdeeCustomerId: input.kingdeeCustomerId }
           : {}),
-        ...(typeof input.wechatOpenid !== "undefined" ? { wechatOpenid: input.wechatOpenid } : {})
+        ...(typeof input.wechatOpenid !== "undefined" ? { wechatOpenid: input.wechatOpenid } : {}),
+        ...(typeof input.accessToken !== "undefined" ? { accessToken: input.accessToken } : {}),
+        ...(typeof input.tokenExpiresAt !== "undefined" ? { tokenExpiresAt: input.tokenExpiresAt } : {})
       }
     });
   }
@@ -191,6 +220,12 @@ class CoreRepo {
 
   async listCustomers() {
     return corePrisma.customer.findMany({
+      include: {
+        registrationApplications: {
+          orderBy: [{ createdAt: "desc" }],
+          take: 1
+        }
+      },
       orderBy: [{ updatedAt: "desc" }]
     });
   }
@@ -201,6 +236,66 @@ class CoreRepo {
       data: {
         accessToken,
         tokenExpiresAt
+      }
+    });
+  }
+
+  async createCustomerRegistrationApplication(input: {
+    customerId: string;
+    payloadJson: string;
+    status?: string;
+  }) {
+    return corePrisma.customerRegistrationApplication.create({
+      data: {
+        customerId: input.customerId,
+        payloadJson: input.payloadJson,
+        status: input.status ?? "PENDING"
+      }
+    });
+  }
+
+  async listCustomerRegistrationApplications(status?: string) {
+    return corePrisma.customerRegistrationApplication.findMany({
+      where: status
+        ? {
+            status
+          }
+        : undefined,
+      include: {
+        customer: true
+      },
+      orderBy: [{ createdAt: "desc" }]
+    });
+  }
+
+  async findLatestRegistrationApplicationByCustomer(customerId: string) {
+    return corePrisma.customerRegistrationApplication.findFirst({
+      where: { customerId },
+      orderBy: [{ createdAt: "desc" }]
+    });
+  }
+
+  async findCustomerRegistrationApplicationById(id: string) {
+    return corePrisma.customerRegistrationApplication.findUnique({
+      where: { id },
+      include: {
+        customer: true
+      }
+    });
+  }
+
+  async reviewCustomerRegistrationApplication(input: {
+    id: string;
+    status: string;
+    reviewedAt: Date;
+    reviewRemark?: string | null;
+  }) {
+    return corePrisma.customerRegistrationApplication.update({
+      where: { id: input.id },
+      data: {
+        status: input.status,
+        reviewedAt: input.reviewedAt,
+        reviewRemark: input.reviewRemark ?? null
       }
     });
   }
@@ -271,6 +366,28 @@ class CoreRepo {
   async findProductById(id: string) {
     return corePrisma.product.findUnique({
       where: { id },
+      include: {
+        skus: {
+          orderBy: [{ createdAt: "asc" }]
+        }
+      }
+    });
+  }
+
+  async findProductByCode(code: string) {
+    return corePrisma.product.findUnique({
+      where: { code },
+      include: {
+        skus: {
+          orderBy: [{ createdAt: "asc" }]
+        }
+      }
+    });
+  }
+
+  async findProductByKingdeeMaterialId(kingdeeMaterialId: string) {
+    return corePrisma.product.findFirst({
+      where: { kingdeeMaterialId },
       include: {
         skus: {
           orderBy: [{ createdAt: "asc" }]
@@ -352,6 +469,15 @@ class CoreRepo {
     });
   }
 
+  async findSkuByKingdeeMaterialId(kingdeeMaterialId: string) {
+    return corePrisma.productSku.findFirst({
+      where: { kingdeeMaterialId },
+      include: {
+        product: true
+      }
+    });
+  }
+
   async ensureCustomerCart(customerId: string) {
     return corePrisma.cart.upsert({
       where: { customerId },
@@ -422,6 +548,15 @@ class CoreRepo {
     });
   }
 
+  async findCartItemByCustomerAndSku(customerId: string, skuId: string) {
+    return corePrisma.cartItem.findFirst({
+      where: {
+        customerId,
+        skuId
+      }
+    });
+  }
+
   async updateCartItemQty(id: string, qty: number) {
     return corePrisma.cartItem.update({
       where: { id },
@@ -476,6 +611,325 @@ class CoreRepo {
     });
   }
 
+  async listCustomerAddresses(customerId: string) {
+    return corePrisma.customerAddress.findMany({
+      where: { customerId },
+      orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }]
+    });
+  }
+
+  async findCustomerAddressById(customerId: string, addressId: string) {
+    return corePrisma.customerAddress.findFirst({
+      where: {
+        id: addressId,
+        customerId
+      }
+    });
+  }
+
+  async upsertCustomerAddress(input: {
+    id?: string;
+    customerId: string;
+    receiverName: string;
+    receiverPhone: string;
+    province: string;
+    city: string;
+    district: string;
+    detail: string;
+    isDefault?: boolean;
+  }) {
+    return corePrisma.$transaction(async (tx) => {
+      if (input.isDefault) {
+        await tx.customerAddress.updateMany({
+          where: { customerId: input.customerId },
+          data: { isDefault: false }
+        });
+      }
+
+      if (input.id?.trim()) {
+        return tx.customerAddress.update({
+          where: { id: input.id.trim() },
+          data: {
+            receiverName: input.receiverName,
+            receiverPhone: input.receiverPhone,
+            province: input.province,
+            city: input.city,
+            district: input.district,
+            detail: input.detail,
+            isDefault: Boolean(input.isDefault)
+          }
+        });
+      }
+
+      return tx.customerAddress.create({
+        data: {
+          customerId: input.customerId,
+          receiverName: input.receiverName,
+          receiverPhone: input.receiverPhone,
+          province: input.province,
+          city: input.city,
+          district: input.district,
+          detail: input.detail,
+          isDefault: Boolean(input.isDefault)
+        }
+      });
+    });
+  }
+
+  async removeCustomerAddress(customerId: string, addressId: string) {
+    return corePrisma.customerAddress.deleteMany({
+      where: {
+        id: addressId,
+        customerId
+      }
+    });
+  }
+
+  async listInvoiceProfiles(customerId: string) {
+    return corePrisma.invoiceProfile.findMany({
+      where: { customerId },
+      orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }]
+    });
+  }
+
+  async findInvoiceProfileById(customerId: string, profileId: string) {
+    return corePrisma.invoiceProfile.findFirst({
+      where: {
+        id: profileId,
+        customerId
+      }
+    });
+  }
+
+  async upsertInvoiceProfile(input: {
+    id?: string;
+    customerId: string;
+    title: string;
+    taxNo: string;
+    bankName?: string | null;
+    bankAccount?: string | null;
+    addressPhone?: string | null;
+    email?: string | null;
+    isDefault?: boolean;
+  }) {
+    return corePrisma.$transaction(async (tx) => {
+      if (input.isDefault) {
+        await tx.invoiceProfile.updateMany({
+          where: { customerId: input.customerId },
+          data: { isDefault: false }
+        });
+      }
+
+      if (input.id?.trim()) {
+        return tx.invoiceProfile.update({
+          where: { id: input.id.trim() },
+          data: {
+            title: input.title,
+            taxNo: input.taxNo,
+            bankName: input.bankName ?? null,
+            bankAccount: input.bankAccount ?? null,
+            addressPhone: input.addressPhone ?? null,
+            email: input.email ?? null,
+            isDefault: Boolean(input.isDefault)
+          }
+        });
+      }
+
+      return tx.invoiceProfile.create({
+        data: {
+          customerId: input.customerId,
+          title: input.title,
+          taxNo: input.taxNo,
+          bankName: input.bankName ?? null,
+          bankAccount: input.bankAccount ?? null,
+          addressPhone: input.addressPhone ?? null,
+          email: input.email ?? null,
+          isDefault: Boolean(input.isDefault)
+        }
+      });
+    });
+  }
+
+  async removeInvoiceProfile(customerId: string, profileId: string) {
+    return corePrisma.invoiceProfile.deleteMany({
+      where: {
+        id: profileId,
+        customerId
+      }
+    });
+  }
+
+  async createQuoteRequest(input: {
+    customerId: string;
+    itemsJson: string;
+    remark?: string | null;
+    status?: string;
+  }) {
+    return corePrisma.quoteRequest.create({
+      data: {
+        customerId: input.customerId,
+        itemsJson: input.itemsJson,
+        remark: input.remark ?? null,
+        status: input.status ?? "PENDING"
+      }
+    });
+  }
+
+  async listQuoteRequestsByCustomer(customerId: string) {
+    return corePrisma.quoteRequest.findMany({
+      where: { customerId },
+      orderBy: [{ createdAt: "desc" }]
+    });
+  }
+
+  async createInvoiceRequest(input: {
+    customerId: string;
+    orderIdsJson: string;
+    invoiceProfileId?: string | null;
+    remark?: string | null;
+    status?: string;
+    kingdeeRefId?: string | null;
+  }) {
+    return corePrisma.invoiceRequest.create({
+      data: {
+        customerId: input.customerId,
+        orderIdsJson: input.orderIdsJson,
+        invoiceProfileId: input.invoiceProfileId ?? null,
+        remark: input.remark ?? null,
+        status: input.status ?? "PENDING",
+        kingdeeRefId: input.kingdeeRefId ?? null
+      }
+    });
+  }
+
+  async updateInvoiceRequest(input: {
+    id: string;
+    status?: string;
+    kingdeeRefId?: string | null;
+    remark?: string | null;
+  }) {
+    return corePrisma.invoiceRequest.update({
+      where: { id: input.id },
+      data: {
+        ...(typeof input.status !== "undefined" ? { status: input.status } : {}),
+        ...(typeof input.kingdeeRefId !== "undefined" ? { kingdeeRefId: input.kingdeeRefId } : {}),
+        ...(typeof input.remark !== "undefined" ? { remark: input.remark } : {})
+      }
+    });
+  }
+
+  async listInvoiceRequestsByCustomer(customerId: string) {
+    return corePrisma.invoiceRequest.findMany({
+      where: { customerId },
+      include: {
+        invoiceProfile: true
+      },
+      orderBy: [{ createdAt: "desc" }]
+    });
+  }
+
+  async getSetting(key: string) {
+    return corePrisma.setting.findUnique({
+      where: { key }
+    });
+  }
+
+  async listSettings(keys?: string[]) {
+    return corePrisma.setting.findMany({
+      where: keys && keys.length > 0 ? { key: { in: keys } } : undefined,
+      orderBy: [{ key: "asc" }]
+    });
+  }
+
+  async upsertSetting(key: string, valueJson: string) {
+    return corePrisma.setting.upsert({
+      where: { key },
+      create: {
+        key,
+        valueJson
+      },
+      update: {
+        valueJson
+      }
+    });
+  }
+
+  async findPriceCache(customerId: string, skuId: string) {
+    return corePrisma.priceCache.findFirst({
+      where: {
+        customerId,
+        skuId
+      }
+    });
+  }
+
+  async upsertPriceCache(input: {
+    customerId: string;
+    skuId: string;
+    unitPrice: number;
+    currency?: string;
+    source?: string | null;
+  }) {
+    return corePrisma.priceCache.upsert({
+      where: {
+        customerId_skuId: {
+          customerId: input.customerId,
+          skuId: input.skuId
+        }
+      },
+      create: {
+        customerId: input.customerId,
+        skuId: input.skuId,
+        unitPrice: input.unitPrice,
+        currency: input.currency ?? "CNY",
+        source: input.source ?? null
+      },
+      update: {
+        unitPrice: input.unitPrice,
+        currency: input.currency ?? "CNY",
+        source: input.source ?? null
+      }
+    });
+  }
+
+  async listSkusByMaterialIds(materialIds: string[]) {
+    if (materialIds.length === 0) {
+      return [];
+    }
+    return corePrisma.productSku.findMany({
+      where: {
+        kingdeeMaterialId: {
+          in: materialIds
+        }
+      }
+    });
+  }
+
+  async listActiveSkusWithMaterialId() {
+    return corePrisma.productSku.findMany({
+      where: {
+        status: "ACTIVE",
+        kingdeeMaterialId: {
+          not: null
+        }
+      },
+      include: {
+        product: true
+      }
+    });
+  }
+
+  async updateSkuStockByMaterialId(materialId: string, stock: number) {
+    return corePrisma.productSku.updateMany({
+      where: {
+        kingdeeMaterialId: materialId
+      },
+      data: {
+        stock
+      }
+    });
+  }
+
   async findSalesOrderByIdempotencyKey(customerId: string, idempotencyKey: string) {
     return corePrisma.salesOrder.findFirst({
       where: {
@@ -496,6 +950,7 @@ class CoreRepo {
     currency: string;
     totalAmount: number;
     remark?: string | null;
+    deliveryInfoJson?: string | null;
     idempotencyKey?: string | null;
     lines: OrderLineInput[];
   }) {
@@ -509,6 +964,7 @@ class CoreRepo {
           currency: input.currency,
           totalAmount: input.totalAmount,
           remark: input.remark ?? null,
+          deliveryInfoJson: input.deliveryInfoJson ?? null,
           idempotencyKey: input.idempotencyKey ?? null
         }
       });
@@ -570,6 +1026,20 @@ class CoreRepo {
     });
   }
 
+  async listSalesOrdersByCustomerAndIds(customerId: string, ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+    return corePrisma.salesOrder.findMany({
+      where: {
+        customerId,
+        id: {
+          in: ids
+        }
+      }
+    });
+  }
+
   async listSalesOrdersByCustomer(input: {
     customerId: string;
     page: number;
@@ -614,13 +1084,24 @@ class CoreRepo {
     status?: string;
     customerId?: string;
     orderNo?: string;
+    excludeMockWriteback?: boolean;
   }) {
+    const excludeMockWriteback = input.excludeMockWriteback !== false;
     const where: Prisma.SalesOrderWhereInput = {
       status: input.status ?? undefined,
       customerId: input.customerId ?? undefined,
       orderNo: input.orderNo
         ? {
             contains: input.orderNo
+          }
+        : undefined,
+      writebackLogs: excludeMockWriteback
+        ? {
+            none: {
+              responseJson: {
+                contains: "MOCK-KD-"
+              }
+            }
           }
         : undefined
     };
@@ -682,6 +1163,8 @@ class CoreRepo {
     kingdeeOrderNumber?: string | null;
     writebackError?: string | null;
     canceledAt?: Date | null;
+    remark?: string | null;
+    deliveryInfoJson?: string | null;
   }) {
     return corePrisma.salesOrder.update({
       where: { id: input.id },
@@ -692,7 +1175,9 @@ class CoreRepo {
           ? { kingdeeOrderNumber: input.kingdeeOrderNumber }
           : {}),
         ...(typeof input.writebackError !== "undefined" ? { writebackError: input.writebackError } : {}),
-        ...(typeof input.canceledAt !== "undefined" ? { canceledAt: input.canceledAt } : {})
+        ...(typeof input.canceledAt !== "undefined" ? { canceledAt: input.canceledAt } : {}),
+        ...(typeof input.remark !== "undefined" ? { remark: input.remark } : {}),
+        ...(typeof input.deliveryInfoJson !== "undefined" ? { deliveryInfoJson: input.deliveryInfoJson } : {})
       }
     });
   }

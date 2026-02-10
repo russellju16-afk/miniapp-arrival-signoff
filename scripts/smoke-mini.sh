@@ -5,7 +5,13 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 export KD_MOCK_MODE=true
-export DB_URL="${DB_URL:-file:./prisma/core/dev.db}"
+DB_URL_VALUE="${DB_URL:-file:./prisma/core/smoke.db}"
+if [[ "${DB_URL_VALUE}" != file:* ]]; then
+  echo "[smoke-mini] DB_URL 必须是 sqlite file: 路径，当前 ${DB_URL_VALUE}" >&2
+  exit 1
+fi
+export DB_URL="${DB_URL_VALUE}"
+DB_PATH="${DB_URL_VALUE#file:}"
 export ADMIN_TOKEN="${ADMIN_TOKEN:-dev-admin-token}"
 
 echo "[smoke-mini] doctor:env"
@@ -56,9 +62,9 @@ if [[ "${ADMIN_SYNC_STATUS_OK}" != "true" ]]; then
 fi
 
 echo "[smoke-mini] pick first customer"
-CUSTOMER_ID="$(sqlite3 ./prisma/core/dev.db "SELECT customer_id FROM deliveries ORDER BY created_at ASC LIMIT 1;")"
+CUSTOMER_ID="$(sqlite3 "${DB_PATH}" "SELECT customer_id FROM deliveries ORDER BY created_at ASC LIMIT 1;")"
 if [[ -z "${CUSTOMER_ID}" ]]; then
-  CUSTOMER_ID="$(sqlite3 ./prisma/core/dev.db "SELECT id FROM customers ORDER BY created_at ASC LIMIT 1;")"
+  CUSTOMER_ID="$(sqlite3 "${DB_PATH}" "SELECT id FROM customers ORDER BY created_at ASC LIMIT 1;")"
 fi
 if [[ -z "${CUSTOMER_ID}" ]]; then
   echo "[smoke-mini] customers 表为空，无法继续" >&2
@@ -77,7 +83,7 @@ if [[ -z "${CUSTOMER_TOKEN}" ]]; then
 fi
 
 echo "[smoke-mini] reset one delivery to PENDING for deterministic sign flow"
-sqlite3 ./prisma/core/dev.db \
+sqlite3 "${DB_PATH}" \
   "UPDATE deliveries SET status='PENDING', signed_at=NULL, signed_payload_json=NULL, sign_idempotency_key=NULL WHERE id=(SELECT id FROM deliveries ORDER BY created_at ASC LIMIT 1);"
 
 echo "[smoke-mini] mini login"

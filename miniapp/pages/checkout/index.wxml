@@ -1,98 +1,108 @@
 <view class="container">
-  <block wx:if="{{loading}}">
-    <view class="empty">结算信息加载中...</view>
-  </block>
-
-  <block wx:elif="{{!pageReady}}">
-    <view class="empty">正在准备结算...</view>
-  </block>
-
-  <block wx:elif="{{items.length === 0}}">
-    <view class="card">
-      <view class="empty">没有可结算商品，请先加入购物车。</view>
-      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+  <view class="card" wx:if="{{loading && items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">结算数据加载中</view>
+      <view class="empty-desc">正在同步地址、价格与商品清单</view>
+      <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
     </view>
-  </block>
+  </view>
+
+  <view class="card" wx:elif="{{errorMessage && items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">结算页加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading || submitting}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="goCart" disabled="{{loading || actionLoading || submitting}}">返回购物车</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:elif="{{items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">暂无可结算商品</view>
+      <view class="empty-desc">请返回购物车选择有价格商品后再提交订单</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="goCart" disabled="{{loading || actionLoading || submitting}}">返回购物车</button>
+        <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading || submitting}}">刷新</button>
+      </view>
+    </view>
+  </view>
 
   <block wx:else>
-    <view class="card">
-      <view class="section-head">
-        <view class="title">收货地址</view>
-        <button class="btn-mini" bindtap="goManageAddress">管理</button>
-      </view>
-      <block wx:if="{{selectedAddress}}">
-        <view class="row">
-          <text class="value">{{selectedAddress.receiver}}</text>
-          <text class="value">{{selectedAddress.phone}}</text>
-        </view>
-        <view class="sub-title">{{selectedAddress.province}}{{selectedAddress.city}}{{selectedAddress.district}}{{selectedAddress.detail}}</view>
-      </block>
-      <block wx:else>
-        <view class="sub-title">暂无地址，请先新增地址</view>
-      </block>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading || submitting}}">刷新重试</button>
     </view>
 
     <view class="card">
       <view class="title">配送方式</view>
-      <picker mode="selector" range="{{deliveryOptions}}" range-key="label" value="{{deliveryIndex}}" bindchange="onDeliveryChange">
-        <view class="picker">{{deliveryOptions[deliveryIndex].label}}</view>
-      </picker>
+      <view class="mode-row">
+        <view class="mode {{deliveryMode === 'DELIVERY' ? 'mode-active' : ''}}" data-mode="DELIVERY" bindtap="onSwitchMode">
+          配送
+        </view>
+        <view class="mode {{deliveryMode === 'PICKUP' ? 'mode-active' : ''}}" data-mode="PICKUP" bindtap="onSwitchMode">
+          自提
+        </view>
+      </view>
+
+      <block wx:if="{{deliveryMode === 'DELIVERY'}}">
+        <view class="row section-head">
+          <view class="label">收货地址</view>
+          <button class="btn-plain mini-btn" bindtap="goManageAddress" loading="{{actionLoading}}" disabled="{{loading || actionLoading || submitting}}">管理地址</button>
+        </view>
+
+        <picker mode="selector" range="{{addresses}}" range-key="detail" value="{{selectedAddressIndex}}" bindchange="onSelectAddress" wx:if="{{addresses.length > 0}}">
+          <view class="picker">{{selectedAddressText || '请选择地址'}}</view>
+        </picker>
+        <view wx:if="{{addresses.length === 0}}">
+          <view class="sub-title">暂无地址，请先新增收货地址</view>
+          <button class="btn-plain mini-btn" bindtap="goManageAddress" loading="{{actionLoading}}" disabled="{{loading || actionLoading || submitting}}">去新增地址</button>
+        </view>
+
+        <view class="row field-row">
+          <view class="label">期望到货日期</view>
+          <picker mode="date" value="{{expectedDate}}" bindchange="onDateChange">
+            <view class="picker-link">{{expectedDate}}</view>
+          </picker>
+        </view>
+
+        <view class="row field-row">
+          <view class="label">期望时间段</view>
+          <picker mode="selector" range="{{timeSlotOptions}}" value="{{timeSlotIndex}}" bindchange="onTimeSlotChange">
+            <view class="picker-link">{{timeSlotOptions[timeSlotIndex]}}</view>
+          </picker>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="label">自提点</view>
+        <view class="sub-title">{{profile.pickupAddress || '仓库地址未配置，请联系管理员维护。'}}</view>
+      </block>
+
+      <input class="input" data-field="unloadingRequirement" value="{{unloadingRequirement}}" bindinput="onFieldInput" placeholder="卸货要求（如：叉车/托盘）" />
+      <textarea class="textarea" data-field="note" value="{{note}}" bindinput="onFieldInput" placeholder="配送/自提备注"></textarea>
+      <textarea class="textarea" data-field="customerRemark" value="{{customerRemark}}" bindinput="onFieldInput" placeholder="订单备注（选填）"></textarea>
     </view>
 
     <view class="card">
       <view class="title">商品清单</view>
       <view class="line" wx:for="{{items}}" wx:key="skuId">
         <view class="row">
-          <text class="value">{{item.productName}}</text>
-          <text class="value">¥{{item.lineAmountText}}</text>
+          <view class="value">{{item.productName}}</view>
+          <view class="value">¥{{item.lineAmountText}}</view>
         </view>
-        <view class="sub-title">{{item.skuName}} · 数量 x {{item.qty}} · 单价 ¥{{item.unitPriceText}}</view>
+        <view class="sub-title">{{item.skuName}} · 数量 x {{item.qty}}</view>
         <view class="sub-title" wx:if="{{item.specsText}}">{{item.specsText}}</view>
       </view>
-    </view>
 
-    <view class="card">
-      <view class="section-head">
-        <view class="title">优惠券</view>
-        <button class="btn-mini" bindtap="goCouponCenter">优惠券中心</button>
+      <view class="row total-row">
+        <view class="value">合计（{{totalQty}}件）</view>
+        <view class="total">¥{{totalAmountText}}</view>
       </view>
-      <picker mode="selector" range="{{couponOptions}}" range-key="label" value="{{couponIndex}}" bindchange="onCouponChange">
-        <view class="picker">{{couponOptions[couponIndex].label}}</view>
-      </picker>
-    </view>
+      <view class="sub-title">结算方式：线下结算</view>
 
-    <view class="card">
-      <view class="title">订单备注</view>
-      <textarea
-        class="remark"
-        placeholder="如：工作日 9:00-18:00 收货"
-        maxlength="200"
-        value="{{remark}}"
-        bindinput="onRemarkInput"
-      ></textarea>
-
-      <view class="row summary-row">
-        <text class="label">商品件数</text>
-        <text class="value">{{totalQty}} 件</text>
-      </view>
-      <view class="row summary-row">
-        <text class="label">商品金额</text>
-        <text class="value">¥{{totalAmountText}}</text>
-      </view>
-      <view class="row summary-row">
-        <text class="label">配送费</text>
-        <text class="value">¥{{deliveryFeeText}}</text>
-      </view>
-      <view class="row summary-row">
-        <text class="label">优惠抵扣</text>
-        <text class="discount">-¥{{discountAmountText}}</text>
-      </view>
-      <view class="row summary-row total-row">
-        <text class="value">应付金额</text>
-        <text class="total">¥{{payAmountText}}</text>
-      </view>
-
-      <button class="btn-primary" bindtap="submitOrder" loading="{{submitting}}" disabled="{{submitting}}">
+      <button class="btn-primary" bindtap="submitOrder" loading="{{submitting}}" disabled="{{submitting || loading || actionLoading || (deliveryMode === 'DELIVERY' && addresses.length === 0)}}">
         {{submitting ? '提交中...' : '提交订单'}}
       </button>
     </view>

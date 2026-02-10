@@ -159,6 +159,9 @@
 - `POST /api/admin/orders/:id/cancel`
 - `POST /api/admin/sync/run`
 - `GET /api/admin/sync/status`
+- `GET /api/admin/settings`
+- `POST /api/admin/settings`
+- `POST /api/admin/settings/test-webhook?type=ORDER|LOGISTICS|FINANCE|QUOTE|REGISTRATION`
 
 说明：`/api/admin/sync/*` 已迁移到 core 同步引擎（SQLite），支持 `jobName=sync:deliveries|sync:receipts|sync:all`（兼容别名如 `deliveries/receipts`）。
 
@@ -246,6 +249,48 @@
 
 - 仅允许状态 `CREATED` / `WRITEBACK_FAILED`
 - 成功后状态变更为 `CANCELED`
+
+### 6.4 系统设置（持久化）
+
+`GET /api/admin/settings`：
+
+- 读取 settings 表中的配置（JSON 值原样返回）
+
+`POST /api/admin/settings`（推荐）：
+
+```json
+{
+  "ORDER_WEBHOOK": "https://open.feishu.cn/open-apis/bot/v2/hook/xxx",
+  "LOGISTICS_WEBHOOK": "https://open.feishu.cn/open-apis/bot/v2/hook/yyy",
+  "FINANCE_WEBHOOK": "",
+  "QUOTE_WEBHOOK": "",
+  "REGISTRATION_WEBHOOK": "",
+  "PICKUP_ADDRESS": "深圳市南山区科技园仓A-1号门",
+  "EXCLUDED_WAREHOUSE_CODES": ["DEFECT", "BAD-STOCK"],
+  "PRICING_CONTEXT": {
+    "billTypeId": "BT-001",
+    "currencyId": "CNY",
+    "exchangeRate": "1",
+    "currency": "CNY"
+  }
+}
+```
+
+兼容写法：`PUT /api/admin/settings`（与 `POST` 等价）。
+
+`POST /api/admin/settings/test-webhook?type=ORDER`：
+
+```json
+{
+  "title": "ORDER webhook 测试",
+  "lines": ["source=admin-ui", "time=2026-02-08T07:00:00.000Z"]
+}
+```
+
+说明：
+
+- `type` 会映射到内部 key：`ORDER_WEBHOOK` / `LOGISTICS_WEBHOOK` / `FINANCE_WEBHOOK` / `QUOTE_WEBHOOK` / `REGISTRATION_WEBHOOK`
+- 也可直接调用 `POST /api/admin/settings/webhook/test` 并在 body 传 `key` / `webhookUrl`
 
 ## 7. 兼容接口（deprecated）
 

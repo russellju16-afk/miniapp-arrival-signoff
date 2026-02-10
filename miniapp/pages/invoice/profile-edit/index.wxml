@@ -1,0 +1,66 @@
+<view class="container safe-bottom has-fixed-action profile-edit-page page-shell">
+  <view class="section-strip">
+    <view class="title">{{editingId ? '编辑发票抬头' : '新增发票抬头'}}</view>
+    <view class="sub-title">请完整填写资料，便于开票申请自动回填</view>
+  </view>
+
+  <view class="card form-card">
+    <view class="field-row type-row">
+      <view class="field-label required">发票类型</view>
+      <view class="type-options">
+        <view class="type-option {{form.invoiceType === 'PERSONAL' ? 'active' : ''}}" data-type="PERSONAL" bindtap="onTypeChange">
+          <view class="radio">{{form.invoiceType === 'PERSONAL' ? '✓' : ''}}</view>
+          <text>个人</text>
+        </view>
+        <view class="type-option {{form.invoiceType === 'COMPANY' ? 'active' : ''}}" data-type="COMPANY" bindtap="onTypeChange">
+          <view class="radio">{{form.invoiceType === 'COMPANY' ? '✓' : ''}}</view>
+          <text>企/事业单位</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="field-row">
+      <view class="field-label required">{{form.invoiceType === 'PERSONAL' ? '姓名' : '单位名称'}}</view>
+      <input class="input" placeholder="请输入发票抬头（必填）" data-field="title" value="{{form.title}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label required">手机号</view>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号（必填）" data-field="mobile" value="{{form.mobile}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label required">税号</view>
+      <input class="input" placeholder="请输入税号（必填）" data-field="taxNo" value="{{form.taxNo}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">开户银行</view>
+      <input class="input" placeholder="请输入对公账户开户银行" data-field="bankName" value="{{form.bankName}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">银行账号</view>
+      <input class="input" placeholder="请输入对公账户银行账号" data-field="bankAccount" value="{{form.bankAccount}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">详细地址</view>
+      <input class="input" placeholder="请输入详细地址" data-field="detailAddress" value="{{form.detailAddress}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">邮箱</view>
+      <input class="input" placeholder="请输入邮箱（选填）" data-field="email" value="{{form.email}}" bindinput="onFieldInput" />
+    </view>
+
+    <view class="field-row switch-row">
+      <view class="field-label">设为默认模板</view>
+      <switch checked="{{form.isDefault}}" bindchange="onDefaultSwitch" color="#1677FF" />
+    </view>
+  </view>
+
+  <view class="fixed-action-bar">
+    <button class="btn-primary fixed-action-btn" bindtap="onSubmit" loading="{{submitting}}" disabled="{{submitting || loading}}">保存</button>
+  </view>
+</view>

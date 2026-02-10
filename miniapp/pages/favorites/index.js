@@ -6,6 +6,8 @@ const { formatAmount } = require('../../utils/format');
 Page({
   data: {
     loading: false,
+    errorMessage: '',
+    actionLoading: false,
     list: []
   },
 
@@ -23,12 +25,12 @@ Page({
   async fetchFavorites() {
     const favoriteIds = mall.getFavorites();
     if (favoriteIds.length === 0) {
-      this.setData({ list: [] });
+      this.setData({ list: [], errorMessage: '' });
       return;
     }
 
     try {
-      this.setData({ loading: true });
+      this.setData({ loading: true, errorMessage: '' });
       const res = await api.getProducts({ page: 1, pageSize: 300 });
       const payload = res.data || {};
       const items = Array.isArray(payload.items) ? payload.items : [];
@@ -48,7 +50,9 @@ Page({
 
       this.setData({ list });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载收藏失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载收藏失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
@@ -65,6 +69,9 @@ Page({
   },
 
   toggleFavorite(e) {
+    if (this.data.loading || this.data.actionLoading) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
     if (!id) {
       return;
@@ -75,15 +82,36 @@ Page({
   },
 
   goDetail(e) {
+    if (this.data.actionLoading) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
     if (!id) {
       return;
     }
+    this.setData({ actionLoading: true });
     wx.navigateTo({ url: `/pages/products/detail/index?id=${id}` });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   },
 
   goProducts() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
     wx.navigateTo({ url: '/pages/products/list/index' });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
+  },
+
+  refreshData() {
+    if (this.data.loading) {
+      return;
+    }
+    this.fetchFavorites();
   },
 
   ensureLogin() {

@@ -1,16 +1,50 @@
 <view class="container">
   <view class="card top-actions" wx:if="{{list.length > 0}}">
-    <button class="btn-plain" bindtap="clearAll">清空足迹</button>
+    <button class="btn-plain mini-btn" bindtap="clearAll" disabled="{{loading || actionLoading}}">清空足迹</button>
+    <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
   </view>
 
-  <block wx:if="{{list.length === 0}}">
+  <block wx:if="{{loading && list.length === 0}}">
     <view class="card">
-      <view class="empty">暂无浏览记录</view>
-      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+      <view class="empty-state">
+        <view class="empty-title">足迹加载中</view>
+        <view class="empty-desc">正在整理你的浏览记录</view>
+        <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{errorMessage && list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">足迹加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去逛商城</button>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">暂无浏览记录</view>
+        <view class="empty-desc">浏览商品后会自动记录，便于快速回看</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去逛商城</button>
+          <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+        </view>
+      </view>
     </view>
   </block>
 
   <block wx:else>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+    </view>
     <view class="card item" wx:for="{{list}}" wx:key="productId" data-id="{{item.productId}}" bindtap="goDetail">
       <view class="row">
         <text class="title">{{item.name || '未命名商品'}}</text>
@@ -18,7 +52,7 @@
       </view>
       <view class="sub-title">商品编码：{{item.code || '-'}}</view>
       <view class="sub-title" wx:if="{{item.minPriceText}}">参考价：¥{{item.minPriceText}}</view>
-      <button class="btn-plain small-btn" catchtap="removeItem" data-id="{{item.productId}}">移除</button>
+      <button class="btn-plain small-btn" catchtap="removeItem" data-id="{{item.productId}}" disabled="{{loading || actionLoading}}">移除</button>
     </view>
   </block>
 </view>

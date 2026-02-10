@@ -1,40 +1,102 @@
-<view class="container">
-  <view class="card actions">
-    <button class="btn-primary action-btn" bindtap="goProducts">商城</button>
-    <button class="btn-plain action-btn" bindtap="goOrders">订单</button>
-    <button class="btn-primary action-btn" bindtap="goStatements">查看对账单</button>
-    <button class="btn-plain action-btn" bindtap="refreshData">刷新</button>
-    <button class="btn-plain action-btn" bindtap="goMine">我的</button>
-    <button class="btn-danger action-btn" bindtap="logout">退出登录</button>
+<view class="container safe-bottom deliveries-page">
+  <view class="card hero-card">
+    <view class="hero-title">到货签收与订货</view>
+    <view class="hero-sub" wx:if="{{profile}}">{{profile.name || '客户'}}，{{profile.companyName || '欢迎回来'}}</view>
+    <view class="hero-sub" wx:elif="{{!profile}}">统一查看到货签收、订货与对账进度</view>
+    <view class="hero-sub" wx:if="{{capabilityTip}}">{{capabilityTip}}</view>
+    <view class="hero-meta">
+      <view class="hero-stat">
+        <view class="hero-stat-label">待签收</view>
+        <view class="hero-stat-value">{{pendingCount}}</view>
+      </view>
+      <view class="hero-stat">
+        <view class="hero-stat-label">今日到货</view>
+        <view class="hero-stat-value">{{todayCount}}</view>
+      </view>
+    </view>
   </view>
 
-  <block wx:if="{{loading}}">
-    <view class="empty">加载中...</view>
-  </block>
-
-  <block wx:elif="{{list.length === 0}}">
-    <view class="empty">暂无待签收单据</view>
-  </block>
-
-  <block wx:else>
-    <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
-      <view class="row">
-        <text class="label">单据号</text>
-        <text class="value">{{item.kingdeeBillNumber || item.kingdee_doc_no || '-'}}</text>
+  <view class="card">
+    <view class="section-head">
+      <view>
+        <view class="title">快捷入口</view>
+        <view class="sub-title">常用业务一步直达</view>
       </view>
-      <view class="row">
-        <text class="label">发货日期</text>
-        <text class="value">{{item.ship_date_text || '-'}}</text>
-      </view>
-      <view class="row" wx:if="{{item.orderNo}}">
-        <text class="label">订单号</text>
-        <text class="value">{{item.orderNo}}</text>
-      </view>
-      <view class="row">
-        <text class="label">状态</text>
-        <text class="value {{item.status === 'SIGNED' ? 'status-ok' : 'status-pending'}}">{{item.status}}</text>
-      </view>
-      <view class="more">查看详情 ></view>
     </view>
-  </block>
+    <view class="grid-2x2">
+      <button class="entry-tile" bindtap="goProducts" disabled="{{actionLoading}}">
+        <text class="entry-title">去订货</text>
+        <text class="entry-sub">浏览商品并下单</text>
+      </button>
+      <button class="entry-tile" bindtap="goOrders" disabled="{{actionLoading}}">
+        <text class="entry-title">我的订单</text>
+        <text class="entry-sub">查看写回与进度</text>
+      </button>
+      <button class="entry-tile" bindtap="goStatements" disabled="{{actionLoading}}">
+        <text class="entry-title">对账中心</text>
+        <text class="entry-sub">账期明细与确认</text>
+      </button>
+      <button class="entry-tile" bindtap="goMine" disabled="{{actionLoading}}">
+        <text class="entry-title">我的账号</text>
+        <text class="entry-sub">能力权限与设置</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="card notice-card">
+    <view class="title">公告</view>
+    <view class="notice-text">{{notice}}</view>
+  </view>
+
+  <view class="card">
+    <view class="section-head">
+      <view>
+        <view class="title">待签收列表</view>
+        <view class="sub-title">待签收 {{pendingCount}} 单</view>
+      </view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" loading="{{refreshing}}" disabled="{{loading || refreshing}}">刷新</button>
+    </view>
+
+    <block wx:if="{{loading && list.length === 0}}">
+      <view class="empty-state">
+        <view class="empty-title">数据加载中</view>
+        <view class="empty-desc">正在同步最新待签收单据</view>
+        <button class="btn-plain" bindtap="refreshData" loading="{{refreshing}}" disabled="{{loading || refreshing}}">重新加载</button>
+      </view>
+    </block>
+
+    <block wx:elif="{{errorMessage && list.length === 0}}">
+      <view class="empty-state">
+        <view class="empty-title">加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" loading="{{refreshing}}" disabled="{{loading || refreshing}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goOrders" disabled="{{actionLoading}}">查看订单</button>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{list.length === 0}}">
+      <view class="empty-state">
+        <view class="empty-title">暂无待签收单据</view>
+        <view class="empty-desc">可以先去订货或查看历史订单状态</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="goProducts" disabled="{{actionLoading}}">去订货</button>
+          <button class="btn-plain cta-btn" bindtap="goOrders" disabled="{{actionLoading}}">查看订单</button>
+        </view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="card-plain delivery-item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="row delivery-head">
+          <view class="value">{{item.kingdeeBillNumber || item.kingdee_doc_no || '-'}}</view>
+          <view class="status-chip {{item.isSigned ? 'status-chip-ok' : ''}}">{{item.statusText}}</view>
+        </view>
+        <view class="sub-title">发货日期：{{item.ship_date_text || '-'}}</view>
+        <view class="sub-title" wx:if="{{item.orderNo}}">订单号：{{item.orderNo}}</view>
+        <view class="delivery-more">{{item.isSigned ? '查看签收详情 >' : '去签收 >'}}</view>
+      </view>
+    </block>
+  </view>
 </view>

@@ -23,15 +23,16 @@ const envSchema = z.object({
   KD_TOKEN_CACHE_HOURS: z.coerce.number().int().positive().default(24),
   KD_MOCK_MODE: z
     .enum(["true", "false"])
-    .default("true")
+    .default("false")
     .transform((value) => value === "true"),
+  FEISHU_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
 
   DB_URL: z.string().default("file:./prisma/core/dev.db"),
 
   // 微信登录骨架配置
   WECHAT_LOGIN_MOCK_ENABLED: z
     .enum(["true", "false"])
-    .default("true")
+    .default("false")
     .transform((value) => value === "true"),
   WECHAT_MOCK_OPENID: z.string().default("mock-openid-dev"),
   WECHAT_APPID: z.string().optional(),
@@ -58,6 +59,11 @@ const envSchema = z.object({
     .transform((value) => value === "true"),
   SYNC_MASTER_DAILY_CRON: z.string().default("0 2 * * *"),
   SYNC_DOCUMENT_HOURLY_CRON: z.string().default("0 * * * *"),
+  CORE_INVENTORY_SNAPSHOT_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+  CORE_INVENTORY_SNAPSHOT_CRON: z.string().default("*/15 * * * *"),
   UPLOAD_DIR: z.string().default("./uploads"),
   UPLOAD_PUBLIC_BASE_URL: z.string().url().default("http://localhost:3000"),
   KINGDEE_APP_ID: z.string().default(""),

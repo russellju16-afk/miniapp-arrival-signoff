@@ -5,7 +5,13 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 export KD_MOCK_MODE=true
-export DB_URL="${DB_URL:-file:./prisma/core/dev.db}"
+DB_URL_VALUE="${DB_URL:-file:./prisma/core/smoke.db}"
+if [[ "${DB_URL_VALUE}" != file:* ]]; then
+  echo "[smoke] DB_URL 必须是 sqlite file: 路径，当前 ${DB_URL_VALUE}" >&2
+  exit 1
+fi
+export DB_URL="${DB_URL_VALUE}"
+DB_PATH="${DB_URL_VALUE#file:}"
 
 echo "[smoke] doctor:env"
 npm run doctor:env >/dev/null
@@ -35,7 +41,7 @@ for _ in {1..30}; do
 done
 
 echo "[smoke] read first delivery"
-DELIVERY_ROW="$(sqlite3 ./prisma/core/dev.db "SELECT customer_id || '|' || id FROM deliveries LIMIT 1;")"
+DELIVERY_ROW="$(sqlite3 "${DB_PATH}" "SELECT customer_id || '|' || id FROM deliveries LIMIT 1;")"
 if [[ -z "${DELIVERY_ROW}" ]]; then
   echo "[smoke] deliveries 表为空，无法继续" >&2
   exit 1
@@ -44,7 +50,7 @@ CUSTOMER_ID="${DELIVERY_ROW%%|*}"
 DELIVERY_ID="${DELIVERY_ROW##*|}"
 
 echo "[smoke] reset delivery status for deterministic sign flow"
-sqlite3 ./prisma/core/dev.db \
+sqlite3 "${DB_PATH}" \
   "UPDATE deliveries SET status='PENDING', signed_at=NULL, signed_payload_json=NULL, sign_idempotency_key=NULL WHERE id='${DELIVERY_ID}';"
 
 echo "[smoke] deliveries list"

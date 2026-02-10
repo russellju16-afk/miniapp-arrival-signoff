@@ -1,40 +1,51 @@
 <view class="login-page">
-  <view class="hero">
-    <view class="hero-title">客户登录</view>
-    <view class="hero-sub">欢迎使用到货签收与商城系统</view>
+  <view class="login-hero">
+    <view class="hero-title">企业订货登录</view>
+    <view class="hero-sub">微信授权后提交企业资料，审核通过即可下单</view>
   </view>
 
-  <view class="card login-card">
-    <view class="label">访问 Token</view>
-    <view class="input-wrap">
-      <input
-        class="input"
-        placeholder="请输入客户 token"
-        value="{{token}}"
-        bindinput="onTokenInput"
-        bindconfirm="onTokenConfirm"
-        confirm-type="go"
-      />
-      <view class="clear" wx:if="{{token}}" bindtap="onClearToken">清空</view>
+  <view class="card" wx:if="{{errorMessage}}">
+    <view class="empty-state login-error">
+      <view class="empty-title">操作失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <button class="btn-plain" bindtap="onBackToAuth" wx:if="{{step !== 'PENDING'}}">返回重试</button>
+      <button class="btn-plain" bindtap="onTapRecheck" wx:if="{{step === 'PENDING'}}" disabled="{{checking}}">刷新状态</button>
     </view>
-    <view class="error" wx:if="{{tokenError}}">{{tokenError}}</view>
+  </view>
 
-    <button class="btn-primary" bindtap="onSubmit" loading="{{loading}}" disabled="{{loading}}">
-      {{loading ? '登录中...' : '登录'}}
+  <view class="card" wx:if="{{step === 'AUTH'}}">
+    <view class="title">第一步：微信授权</view>
+    <view class="sub-title">点击下方按钮获取登录身份（openid）</view>
+    <button class="btn-primary" bindtap="authorizeWechat" loading="{{loading}}" disabled="{{loading}}">
+      {{loading ? '授权中...' : '微信授权'}}
     </button>
-    <button class="btn-plain" bindtap="onScanToken" disabled="{{loading}}">扫码登录</button>
+
+    <view class="debug-row">
+      <view class="label">开发调试 mockOpenid（可选）</view>
+      <input class="input" value="{{mockOpenid}}" bindinput="onMockOpenidInput" placeholder="如: o_test_001" />
+    </view>
   </view>
 
-  <view class="card clip-card" wx:if="{{showClipboardTip}}">
-    <view class="tips-title">检测到粘贴板 token</view>
-    <view class="sub-title token-preview">{{clipboardToken}}</view>
-    <button class="btn-plain" bindtap="onUseClipboardToken">一键填入</button>
+  <view class="card" wx:if="{{step === 'FORM'}}">
+    <view class="title">第二步：提交注册信息</view>
+    <input class="input" data-field="companyName" value="{{form.companyName}}" bindinput="onFormInput" placeholder="公司名称" />
+    <input class="input" data-field="contactName" value="{{form.contactName}}" bindinput="onFormInput" placeholder="联系人" />
+    <input class="input" data-field="contactPhone" value="{{form.contactPhone}}" bindinput="onFormInput" placeholder="联系电话" type="number" />
+    <textarea class="textarea" data-field="remark" value="{{form.remark}}" bindinput="onFormInput" placeholder="备注（选填）"></textarea>
+    <button class="btn-primary" bindtap="submitRegistration" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交并登录'}}
+    </button>
   </view>
 
-  <view class="card tips">
-    <view class="tips-title">登录说明</view>
-    <view class="tips-item">1. 支持手动输入、扫码自动识别 token。</view>
-    <view class="tips-item">2. 登录后会自动跳转到商城首页。</view>
-    <view class="tips-item">3. token 由管理员在后台签发。</view>
+  <view class="card" wx:if="{{step === 'PENDING'}}">
+    <view class="title">审核中</view>
+    <view class="sub-title">状态：{{profile.status || 'PENDING'}}</view>
+    <view class="sub-title">公司：{{profile.companyName || '-'}}</view>
+    <view class="sub-title">联系人：{{profile.contactName || '-'}} {{profile.contactPhone || ''}}</view>
+    <view class="sub-title warn">审核通过后将自动进入首页，你也可以手动刷新。</view>
+    <button class="btn-primary" bindtap="onTapRecheck" loading="{{checking}}" disabled="{{checking}}">
+      {{checking ? '检查中...' : '刷新状态'}}
+    </button>
+    <button class="btn-plain" bindtap="onBackToAuth">重新登录</button>
   </view>
 </view>

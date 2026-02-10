@@ -1,40 +1,47 @@
 .status {
-  color: #2563eb;
-  font-size: 24rpx;
+  font-size: 22rpx;
 }
 
-.price {
-  color: #dc2626;
-  font-weight: 600;
+.alert-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.mini-btn {
+  margin: 0;
+  height: 56rpx;
+  line-height: 56rpx;
+  font-size: 22rpx;
+  padding: 0 14rpx;
+}
+
+.refresh-btn {
+  margin-top: 8rpx;
+}
+
+.status-ok {
+  color: #16a34a;
+}
+
+.status-fail {
+  color: #ef4444;
+}
+
+.status-normal {
+  color: #5b6b7c;
 }
 
 .line {
-  border-top: 1rpx solid #eef2f7;
+  border-top: 1rpx solid #e6eef8;
   padding: 14rpx 0;
 }
 
 .line:first-child {
   border-top: 0;
-  padding-top: 8rpx;
 }
 
-.remark {
-  width: 100%;
-  min-height: 140rpx;
-  border: 1rpx solid #dbe2ea;
-  border-radius: 10rpx;
-  padding: 14rpx;
-  margin-top: 12rpx;
-  margin-bottom: 12rpx;
-}
-
-.actions {
-  display: flex;
-  gap: 12rpx;
-}
-
-.action-btn {
-  flex: 1;
-  margin: 0;
-  font-size: 24rpx;
+.actions button {
+  margin-top: 10rpx;
 }

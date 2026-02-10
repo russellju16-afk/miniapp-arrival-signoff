@@ -1,30 +1,33 @@
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+.deliveries-page .hero-sub + .hero-sub {
+  margin-top: 6rpx;
 }
 
-.action-btn {
-  flex: 1;
-  min-width: 200rpx;
-  margin: 0;
+.notice-card {
+  border-style: dashed;
+  border-color: #e6eef8;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f1ff 100%);
 }
 
-.item {
-  margin-top: 16rpx;
+.mini-btn {
+  margin-top: 0;
+  height: 56rpx;
+  line-height: 56rpx;
+  padding: 0 18rpx;
+  font-size: 24rpx;
 }
 
-.more {
+.delivery-item {
+  margin-top: 12rpx;
+}
+
+.delivery-head {
+  margin-top: 0;
+  margin-bottom: 8rpx;
+}
+
+.delivery-more {
   margin-top: 10rpx;
-  color: #2563eb;
+  color: #1677ff;
   font-size: 24rpx;
   text-align: right;
-}
-
-.status-ok {
-  color: #16a34a;
-}
-
-.status-pending {
-  color: #ea580c;
 }

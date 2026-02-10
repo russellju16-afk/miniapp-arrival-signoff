@@ -3,6 +3,7 @@ import { env } from "./config/env";
 import { connectRedis, redis } from "./config/redis";
 import { connectCorePrisma, corePrisma } from "./db/core-prisma";
 import { connectPrisma, prisma } from "./db/prisma";
+import { startCoreScheduler, stopCoreScheduler } from "./modules/core/core.scheduler";
 import { startSyncScheduler, stopSyncScheduler } from "./modules/sync";
 
 const app = buildApp();
@@ -18,6 +19,7 @@ async function start(): Promise<void> {
     });
 
     startSyncScheduler();
+    startCoreScheduler();
 
     app.log.info(
       {
@@ -52,6 +54,7 @@ async function shutdown(signal: string): Promise<void> {
 
   try {
     stopSyncScheduler();
+    stopCoreScheduler();
     await app.close();
     await prisma.$disconnect();
     await corePrisma.$disconnect();

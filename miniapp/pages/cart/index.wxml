@@ -1,42 +1,72 @@
 <view class="container">
-  <view class="card actions">
-    <button class="btn-plain action-btn" bindtap="goProducts">继续选品</button>
-    <button class="btn-plain action-btn" bindtap="goOrders">我的订单</button>
-    <button class="btn-plain action-btn" bindtap="goDeliveries">签收中心</button>
+  <view class="card" wx:if="{{focusQuote}}">
+    <view class="row section-head">
+      <view>
+        <view class="badge-quote">询价提示</view>
+        <view class="sub-title">当前购物车支持“仅结算有价格商品”或“一并提交询价单”。</view>
+      </view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading || quoteSubmitting}}">刷新</button>
+    </view>
   </view>
 
-  <block wx:if="{{loading && cart.items.length === 0}}">
-    <view class="empty">加载中...</view>
-  </block>
-
-  <block wx:elif="{{cart.items.length === 0}}">
-    <view class="card">
-      <view class="empty">购物车还是空的，先去选点商品吧。</view>
-      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+  <view class="card" wx:if="{{loading && cart.items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">购物车加载中</view>
+      <view class="empty-desc">正在同步商品与价格信息</view>
+      <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
     </view>
-  </block>
+  </view>
+
+  <view class="card" wx:elif="{{errorMessage && cart.items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">购物车加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading || quoteSubmitting}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading || quoteSubmitting}}">去商品页</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:elif="{{cart.items.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">购物车为空</view>
+      <view class="empty-desc">先去商品页加购，再回到这里统一结算</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading || quoteSubmitting}}">去商品页</button>
+        <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading || quoteSubmitting}}">刷新</button>
+      </view>
+    </view>
+  </view>
 
   <block wx:else>
-    <view class="card item" wx:for="{{cart.items}}" wx:key="id">
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading || quoteSubmitting}}">刷新重试</button>
+    </view>
+
+    <view class="card item-card" wx:for="{{cart.items}}" wx:key="id">
       <view class="row">
         <view class="check {{selectedMap[item.id] ? 'checked' : ''}}" data-id="{{item.id}}" bindtap="onToggleItem">
           {{selectedMap[item.id] ? '✓' : ''}}
         </view>
-        <text class="title flex-1">{{item.productName}}</text>
-        <text class="price">¥{{item.lineAmountText}}</text>
+        <view class="value flex-1">{{item.productName}}</view>
+        <view class="{{item.needQuote ? 'badge-quote' : (item.inStock ? 'badge-ok' : 'badge-warn')}}">
+          {{item.needQuote ? '需报价' : item.stockStatusText}}
+        </view>
+      </view>
+      <view class="sub-title">{{item.skuName}}（{{item.skuCode}}）</view>
+      <view class="sub-title" wx:if="{{item.specsText}}">{{item.specsText}}</view>
+      <view class="row">
+        <view class="sub-title">{{item.hasPrice ? ('单价 ¥' + item.unitPriceText) : '暂无客户价'}}</view>
+        <view class="value">{{item.hasPrice ? ('¥' + item.lineAmountText) : '--'}}</view>
       </view>
 
-      <view class="sub-title">{{item.skuName}}（{{item.skuCode}}）</view>
-      <view class="sub-title" wx:if="{{item.specsText}}">规格：{{item.specsText}}</view>
-
-      <view class="row qty-row">
-        <text class="label">单价 ¥{{item.unitPriceText}}</text>
-        <view class="qty-box">
-          <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onMinusQty">-</button>
-          <text class="qty-text">{{item.qty}}</text>
-          <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onPlusQty">+</button>
-          <button class="btn-plain remove-btn" data-id="{{item.id}}" bindtap="removeItem">移除</button>
-        </view>
+      <view class="qty-row">
+        <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onMinusQty" disabled="{{loading || actionLoading || quoteSubmitting}}">-</button>
+        <text class="qty-text">{{item.qty}}</text>
+        <button class="btn-plain qty-btn" data-id="{{item.id}}" bindtap="onPlusQty" disabled="{{loading || actionLoading || quoteSubmitting}}">+</button>
+        <button class="btn-plain remove-btn" data-id="{{item.id}}" bindtap="removeItem" disabled="{{loading || actionLoading || quoteSubmitting}}">移除</button>
       </view>
     </view>
 
@@ -48,13 +78,18 @@
         </view>
         <text class="sub-title">已选 {{selectedItemCount}} 款 / {{selectedQty}} 件</text>
       </view>
-
+      <view class="sub-title">有价商品 {{selectedPricedCount}} 款，需报价商品 {{selectedQuoteCount}} 款</view>
       <view class="row summary-row">
-        <text class="value">合计</text>
-        <text class="total">¥{{selectedAmountText}}</text>
+        <text class="value">有价合计</text>
+        <text class="amount">¥{{selectedAmountText}}</text>
       </view>
 
-      <button class="btn-primary" bindtap="goCheckout">去结算</button>
+      <button class="btn-primary" bindtap="checkoutPricedItems" loading="{{actionLoading}}" disabled="{{loading || actionLoading || quoteSubmitting || selectedPricedCount === 0}}">
+        仅结算有价格商品
+      </button>
+      <button class="btn-plain" bindtap="submitQuoteForSelected" loading="{{quoteSubmitting}}" disabled="{{loading || actionLoading || quoteSubmitting || selectedQuoteCount === 0}}">
+        一并提交询价单
+      </button>
     </view>
   </block>
 </view>

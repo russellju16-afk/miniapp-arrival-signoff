@@ -1,6 +1,8 @@
 import path from "node:path";
 
-import { PrismaClient } from "../generated/core-prisma-client";
+// Keep runtime compatible for both tsx(dev) and compiled build(start).
+// In build mode this resolves to <repo>/src/generated/core-prisma-client.
+import { PrismaClient } from "../../src/generated/core-prisma-client";
 
 import { logger } from "../config/logger";
 

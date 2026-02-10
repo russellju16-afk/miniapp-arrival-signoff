@@ -1,96 +1,142 @@
-<view class="container">
-  <view class="card hero">
-    <view class="title">商城首页</view>
-    <view class="sub-title">共 {{total}} 件商品</view>
+<view class="container safe-bottom products-page page-shell">
+  <view class="card top-card">
+    <view class="section-head">
+      <view>
+        <view class="title">商品中心</view>
+        <view class="sub-title">共 {{total}} 件商品 · 支持快速筛选</view>
+      </view>
+      <button class="cart-entry" bindtap="goCart" disabled="{{actionLoading}}">
+        <text class="cart-entry-text">购物车</text>
+        <view class="cart-badge" wx:if="{{cartCount > 0}}">{{cartBadgeText}}</view>
+      </button>
+    </view>
 
     <view class="search-row">
       <input
-        class="search-input"
-        placeholder="搜索商品名/编码"
+        class="input"
         value="{{keyword}}"
         bindinput="onKeywordInput"
         bindconfirm="onSearch"
         confirm-type="search"
+        placeholder="搜索商品名称/编码"
       />
-      <button class="btn-primary search-btn" bindtap="onSearch">搜索</button>
-      <button class="btn-plain search-btn" bindtap="onClearSearch">清空</button>
+      <button class="btn-primary mini-btn" bindtap="onSearch" disabled="{{loading}}">搜索</button>
+      <button class="btn-plain mini-btn" bindtap="onClearKeyword" disabled="{{loading || !keyword}}">清空</button>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{profile && profile.status !== 'ACTIVE'}}">
+    <view class="badge-warn">{{profile.status}}</view>
+    <view class="sub-title">当前仅可浏览商品与申请报价，审核通过后可下单。</view>
+    <button class="btn-plain quote-btn" bindtap="goQuoteCenter" disabled="{{actionLoading}}">去申请报价</button>
+  </view>
+
+  <view class="catalog-layout">
+    <view class="catalog-sidebar card-plain">
+      <view
+        class="sidebar-item {{sideCategory === item.value ? 'active' : ''}}"
+        wx:for="{{sideCategories}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onTapSideCategory"
+      >
+        <text class="sidebar-label">{{item.label}}</text>
+        <text class="sidebar-count">{{item.count || 0}}</text>
+      </view>
     </view>
 
-    <view class="recent" wx:if="{{recentSearches.length > 0}}">
-      <view class="row">
-        <text class="label">最近搜索</text>
-        <text class="clear-recent" bindtap="onClearRecentSearch">清空记录</text>
-      </view>
-      <view class="chips">
-        <view class="chip" wx:for="{{recentSearches}}" wx:key="*this" data-keyword="{{item}}" bindtap="onUseRecentSearch">
-          {{item}}
+    <view class="catalog-main">
+      <view class="card-plain main-head">
+        <view class="main-head-row">
+          <view class="main-head-title">{{activeSideLabel}}</view>
+          <view class="main-head-sub">{{list.length}} / {{total}} 件</view>
+        </view>
+        <view class="chip-row business-chip-row">
+          <view
+            class="chip {{category === item.value ? 'chip-active' : ''}}"
+            wx:for="{{categoryOptions}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            bindtap="onTapCategory"
+          >
+            {{item.label}}
+          </view>
         </view>
       </view>
-    </view>
-  </view>
 
-  <view class="card actions">
-    <view class="action" bindtap="goCart">
-      <text class="action-title">购物车</text>
-      <text class="action-sub">{{cartQty}} 件</text>
-    </view>
-    <view class="action" bindtap="goFavorites">
-      <text class="action-title">收藏</text>
-      <text class="action-sub">{{favoritesCount}} 件</text>
-    </view>
-    <view class="action" bindtap="goOrders">
-      <text class="action-title">订单</text>
-      <text class="action-sub">查看全部</text>
-    </view>
-    <view class="action" bindtap="goMine">
-      <text class="action-title">我的</text>
-      <text class="action-sub">账户中心</text>
-    </view>
-  </view>
-
-  <view class="card quick-links">
-    <button class="btn-plain quick-btn" bindtap="goHistory">浏览足迹</button>
-    <button class="btn-plain quick-btn" bindtap="goCoupons">优惠券</button>
-    <button class="btn-plain quick-btn" bindtap="goDeliveries">签收中心</button>
-  </view>
-
-  <view class="card filter-row">
-    <view class="switch-wrap">
-      <text class="label">仅看有货</text>
-      <switch checked="{{stockOnly}}" color="#2563eb" bindchange="onToggleStockOnly" />
-    </view>
-    <picker mode="selector" range="{{sortOptions}}" range-key="label" value="{{sortIndex}}" bindchange="onSortChange">
-      <view class="picker">{{sortOptions[sortIndex].label}}</view>
-    </picker>
-  </view>
-
-  <block wx:if="{{loading && list.length === 0}}">
-    <view class="empty">加载中...</view>
-  </block>
-
-  <block wx:elif="{{list.length === 0}}">
-    <view class="empty">未找到匹配商品</view>
-  </block>
-
-  <block wx:else>
-    <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
-      <view class="row">
-        <text class="title">{{item.name}}</text>
-        <view class="fav {{item.isFavorite ? 'fav-active' : ''}}" catchtap="toggleFavorite" data-id="{{item.id}}">
-          {{item.isFavorite ? '已收藏' : '收藏'}}
+      <block wx:if="{{loading && rawList.length === 0}}">
+        <view class="card catalog-state-card">
+          <view class="empty-state">
+            <view class="empty-illustration">⌛</view>
+            <view class="empty-title">商品加载中</view>
+            <view class="empty-desc">正在同步商品与价格数据</view>
+            <button class="btn-plain" bindtap="loadData" disabled="{{loading}}">刷新重试</button>
+          </view>
         </view>
-      </view>
-      <view class="sub-title">商品编码：{{item.code}}</view>
-      <view class="sub-title" wx:if="{{item.description}}">{{item.description}}</view>
+      </block>
 
-      <view class="row info-row">
-        <text class="stock">库存：{{item.totalStock}}</text>
-        <text class="price">¥{{item.minPriceText}} 起</text>
-      </view>
-      <view class="more">查看规格 ></view>
+      <block wx:elif="{{errorMessage && rawList.length === 0}}">
+        <view class="card catalog-state-card">
+          <view class="empty-state">
+            <view class="empty-illustration">!</view>
+            <view class="empty-title">商品加载失败</view>
+            <view class="empty-desc">{{errorMessage}}</view>
+            <view class="cta-row">
+              <button class="btn-primary cta-btn" bindtap="loadData" disabled="{{loading}}">刷新重试</button>
+              <button class="btn-plain cta-btn" bindtap="onResetFilters" disabled="{{!hasActiveFilters}}">清空筛选</button>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{list.length === 0}}">
+        <view class="card catalog-state-card">
+          <view class="empty-state">
+            <view class="empty-illustration">∅</view>
+            <view class="empty-title">暂无匹配商品</view>
+            <view class="empty-desc">可以清空筛选或直接发起报价申请</view>
+            <view class="cta-row">
+              <button class="btn-plain cta-btn" bindtap="onResetFilters" disabled="{{!hasActiveFilters}}">清空筛选</button>
+              <button class="btn-primary cta-btn" bindtap="goQuoteCenter" disabled="{{actionLoading}}">申请报价</button>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="section-strip refresh-strip" wx:if="{{loading}}">正在刷新商品数据...</view>
+        <view class="section-strip refresh-strip warn" wx:if="{{errorMessage && rawList.length > 0}}">
+          数据更新失败，当前展示缓存结果
+          <text class="refresh-action" bindtap="loadData">点击重试</text>
+        </view>
+
+        <view class="product-list">
+          <view class="product-item card-plain" wx:for="{{list}}" wx:key="id">
+            <image class="product-cover" wx:if="{{item.coverImageUrl}}" src="{{item.coverImageUrl}}" mode="aspectFill"></image>
+            <view class="product-cover placeholder" wx:else>无图</view>
+            <view class="product-body">
+              <view class="product-name">{{item.name}}</view>
+              <view class="product-desc">{{item.description || item.code}}</view>
+              <view class="product-foot">
+                <view>
+                  <view class="product-price">{{item.priceText}}</view>
+                  <view class="badge {{item.needQuote ? 'quote' : (item.hasInStock ? 'ok' : 'warn')}}">
+                    {{item.needQuote ? '需报价' : item.stockStatus}}
+                  </view>
+                </view>
+                <button
+                  class="btn-plain detail-btn"
+                  data-id="{{item.id}}"
+                  bindtap="goDetail"
+                  disabled="{{actionLoading}}"
+                >
+                  查看详情
+                </button>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
     </view>
-
-    <view class="empty" wx:if="{{loading}}">正在加载更多...</view>
-    <view class="empty" wx:elif="{{!hasMore}}">没有更多商品了</view>
-  </block>
+  </view>
 </view>

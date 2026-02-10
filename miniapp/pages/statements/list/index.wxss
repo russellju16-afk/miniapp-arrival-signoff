@@ -1,5 +1,5 @@
 .picker-value {
-  color: #2563eb;
+  color: #1677ff;
   font-size: 28rpx;
 }
 
@@ -14,13 +14,28 @@
   margin: 0;
 }
 
+.alert-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.mini-btn {
+  margin: 0;
+  height: 56rpx;
+  line-height: 56rpx;
+  font-size: 22rpx;
+  padding: 0 14rpx;
+}
+
 .item {
   margin-top: 16rpx;
 }
 
 .more {
   margin-top: 10rpx;
-  color: #2563eb;
+  color: #1677ff;
   font-size: 24rpx;
   text-align: right;
 }
@@ -30,5 +45,5 @@
 }
 
 .status-pending {
-  color: #ea580c;
+  color: #f59e0b;
 }

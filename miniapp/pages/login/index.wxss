@@ -1,79 +1,48 @@
 .login-page {
   min-height: 100vh;
   padding: 0 24rpx 24rpx;
-  background: linear-gradient(180deg, #dbeafe 0%, #f8fafc 40%, #f8fafc 100%);
+  background: radial-gradient(circle at 0% 0%, #e8f1ff 0%, #e8f1ff 28%, #f6f9ff 72%);
 }
 
-.hero {
-  padding: 78rpx 10rpx 34rpx;
+.login-hero {
+  padding: 88rpx 8rpx 34rpx;
 }
 
 .hero-title {
-  font-size: 52rpx;
+  font-size: 50rpx;
   font-weight: 700;
-  color: #0f172a;
+  color: #0b1f3a;
 }
 
 .hero-sub {
   margin-top: 10rpx;
-  color: #475569;
+  color: #5b6b7c;
   font-size: 26rpx;
+  line-height: 1.5;
 }
 
-.login-card {
-  margin-top: 8rpx;
+.input,
+.textarea {
+  margin-top: 14rpx;
 }
 
-.input-wrap {
-  margin-top: 10rpx;
-  display: flex;
-  align-items: center;
-  border: 1rpx solid #cbd5e1;
-  border-radius: 14rpx;
-  background: #ffffff;
-  padding: 0 14rpx;
-}
-
-.input {
-  flex: 1;
-  min-height: 86rpx;
-}
-
-.clear {
-  color: #2563eb;
-  font-size: 24rpx;
-  padding: 10rpx;
-}
-
-.error {
-  margin-top: 8rpx;
-  color: #dc2626;
-  font-size: 24rpx;
+.textarea {
+  min-height: 140rpx;
 }
 
 button {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
 }
 
-.clip-card {
-  border: 1rpx solid #bfdbfe;
+.warn {
+  margin: 14rpx 0;
+  color: #ff6a3d;
 }
 
-.token-preview {
-  margin-top: 8rpx;
-  word-break: break-all;
+.debug-row {
+  margin-top: 22rpx;
 }
 
-.tips {
-  color: #475569;
-}
-
-.tips-title {
-  font-weight: 600;
-  margin-bottom: 12rpx;
-}
-
-.tips-item {
-  margin: 8rpx 0;
-  font-size: 24rpx;
+.login-error {
+  padding: 24rpx 12rpx;
 }

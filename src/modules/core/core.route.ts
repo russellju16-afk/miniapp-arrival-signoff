@@ -9,7 +9,15 @@ import { coreService } from "./core.service";
 const wechatLoginSchema = z.object({
   code: z.string().optional(),
   mockOpenid: z.string().optional(),
-  customerName: z.string().optional()
+  customerName: z.string().optional(),
+  registration: z
+    .object({
+      companyName: z.string().optional(),
+      contactName: z.string().optional(),
+      contactPhone: z.string().optional(),
+      remark: z.string().optional()
+    })
+    .optional()
 });
 
 const queryAsStringRecordSchema = z.record(
@@ -97,11 +105,23 @@ const miniCartUpdateBodySchema = z.object({
 
 const miniOrderCreateBodySchema = z.object({
   remark: z.string().max(500).optional(),
+  acceptPriceChange: z.boolean().optional(),
+  delivery: z
+    .object({
+      mode: z.enum(["DELIVERY", "PICKUP"]),
+      addressId: z.string().optional(),
+      expectedDate: z.string().optional(),
+      timeSlot: z.enum(["7-10", "10-12", "13-15", "15-18"]).optional(),
+      unloadingRequirement: z.string().max(500).optional(),
+      note: z.string().max(500).optional()
+    })
+    .optional(),
   items: z
     .array(
       z.object({
         skuId: z.string().min(1),
-        qty: z.coerce.number().int().positive()
+        qty: z.coerce.number().int().positive(),
+        expectedUnitPrice: z.coerce.number().nonnegative().optional()
       })
     )
     .optional()
@@ -119,6 +139,55 @@ const miniOrderParamsSchema = z.object({
 });
 
 const miniOrderCancelBodySchema = z.object({
+  remark: z.string().max(500).optional()
+});
+
+const miniAddressBodySchema = z.object({
+  id: z.string().optional(),
+  receiverName: z.string().min(1),
+  receiverPhone: z.string().min(1),
+  province: z.string().min(1),
+  city: z.string().min(1),
+  district: z.string().min(1),
+  detail: z.string().min(1),
+  isDefault: z.boolean().optional()
+});
+
+const miniAddressParamsSchema = z.object({
+  id: z.string().min(1, "id 不能为空")
+});
+
+const miniQuoteRequestBodySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        skuId: z.string().min(1),
+        qty: z.coerce.number().int().positive(),
+        specText: z.string().optional()
+      })
+    )
+    .min(1),
+  remark: z.string().max(500).optional()
+});
+
+const miniInvoiceProfileBodySchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  taxNo: z.string().min(1),
+  bankName: z.string().optional(),
+  bankAccount: z.string().optional(),
+  addressPhone: z.string().optional(),
+  email: z.string().optional(),
+  isDefault: z.boolean().optional()
+});
+
+const miniInvoiceProfileParamsSchema = z.object({
+  id: z.string().min(1, "id 不能为空")
+});
+
+const miniInvoiceRequestBodySchema = z.object({
+  orderIds: z.array(z.string().min(1)).min(1),
+  invoiceProfileId: z.string().optional(),
   remark: z.string().max(500).optional()
 });
 
@@ -174,8 +243,35 @@ const adminProductUpsertBodySchema = z.object({
   kingdeeMaterialId: z.string().optional()
 });
 
+const adminImageUploadBodySchema = z.object({
+  dataUrl: z.string().min(1, "dataUrl 不能为空"),
+  filename: z.string().optional(),
+  folder: z.string().optional()
+});
+
 const adminProductsQuerySchema = z.object({
   status: z.string().optional()
+});
+
+const adminKingdeeMaterialListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().optional(),
+  search: z.string().optional()
+});
+
+const adminKingdeeOneClickListingBodySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        materialId: z.string().optional(),
+        materialNumber: z.string().optional(),
+        materialName: z.string().optional(),
+        materialModel: z.string().optional(),
+        unitId: z.string().optional(),
+        coverImageUrl: z.string().optional()
+      })
+    )
+    .min(1, "items 不能为空")
 });
 
 const adminSkuUpsertBodySchema = z.object({
@@ -206,6 +302,55 @@ const adminOrdersQuerySchema = z.object({
   orderNo: z.string().optional()
 });
 
+const adminRegistrationApplicationsQuerySchema = z.object({
+  status: z.string().optional()
+});
+
+const adminRegistrationApplicationParamsSchema = z.object({
+  id: z.string().min(1, "id 不能为空")
+});
+
+const adminReviewRegistrationBodySchema = z.object({
+  action: z.enum(["APPROVE", "REJECT"]),
+  remark: z.string().max(500).optional()
+});
+
+const adminBindCustomerBodySchema = z.object({
+  kingdeeCustomerId: z.string().min(1, "kingdeeCustomerId 不能为空")
+});
+
+const adminUpdateCustomerStatusBodySchema = z.object({
+  status: z.enum(["ACTIVE", "REJECTED"]),
+  remark: z.string().max(500).optional()
+});
+
+const adminRemoveCustomerBodySchema = z.object({
+  remark: z.string().max(500).optional()
+});
+
+const adminCustomerParamsSchema = z.object({
+  id: z.string().min(1, "id 不能为空")
+});
+
+const adminSettingsUpdateBodySchema = z.record(z.string(), z.unknown());
+const adminWebhookTestBodySchema = z.object({
+  key: z.string().optional(),
+  webhookUrl: z.string().url().optional(),
+  title: z.string().max(200).optional(),
+  lines: z.array(z.string().max(500)).max(20).optional()
+});
+const adminSettingsTestWebhookQuerySchema = z.object({
+  type: z.enum(["ORDER", "LOGISTICS", "FINANCE", "QUOTE", "REGISTRATION"]).optional()
+});
+
+const ADMIN_WEBHOOK_KEY_BY_TYPE: Record<string, string> = {
+  ORDER: "ORDER_WEBHOOK",
+  LOGISTICS: "LOGISTICS_WEBHOOK",
+  FINANCE: "FINANCE_WEBHOOK",
+  QUOTE: "QUOTE_WEBHOOK",
+  REGISTRATION: "REGISTRATION_WEBHOOK"
+};
+
 const adminOrderCancelBodySchema = z.object({
   remark: z.string().max(500).optional()
 });
@@ -220,6 +365,10 @@ const adminSyncRunBodySchema = z.object({
 const adminSyncStatusQuerySchema = z.object({
   tenantId: z.string().optional(),
   jobName: z.string().optional()
+});
+
+const adminDiagnosticsRetryWritebackBodySchema = z.object({
+  orderNo: z.string().min(1, "orderNo 不能为空")
 });
 
 declare module "fastify" {
@@ -347,6 +496,21 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get(
+    "/mini/profile",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.getMiniProfile(ensureMiniCustomer(request));
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.get(
     "/mini/products",
     {
       preHandler: async (request) => ensureMiniAuthorization(request)
@@ -442,6 +606,53 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
+  app.get(
+    "/mini/addresses",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.listMiniAddresses(ensureMiniCustomer(request));
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/mini/addresses/upsert",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const body = miniAddressBodySchema.parse(request.body ?? {});
+      const data = await coreService.upsertMiniAddress(ensureMiniCustomer(request), body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.delete(
+    "/mini/addresses/:id",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const params = miniAddressParamsSchema.parse(request.params ?? {});
+      const data = await coreService.removeMiniAddress(ensureMiniCustomer(request), params.id);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
   app.post(
     "/mini/orders",
     {
@@ -454,6 +665,37 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
           ? request.headers["x-idempotency-key"]
           : undefined;
       const data = await coreService.createMiniOrder(ensureMiniCustomer(request), body, idempotencyKey);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/mini/quote-requests",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const body = miniQuoteRequestBodySchema.parse(request.body ?? {});
+      const data = await coreService.createMiniQuoteRequest(ensureMiniCustomer(request), body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.get(
+    "/mini/quote-requests",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.listMiniQuoteRequests(ensureMiniCustomer(request));
       return {
         ok: true,
         requestId: request.id,
@@ -632,6 +874,84 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
+  app.get(
+    "/mini/invoice/profiles",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.listMiniInvoiceProfiles(ensureMiniCustomer(request));
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/mini/invoice/profiles/upsert",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const body = miniInvoiceProfileBodySchema.parse(request.body ?? {});
+      const data = await coreService.upsertMiniInvoiceProfile(ensureMiniCustomer(request), body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.delete(
+    "/mini/invoice/profiles/:id",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const params = miniInvoiceProfileParamsSchema.parse(request.params ?? {});
+      const data = await coreService.removeMiniInvoiceProfile(ensureMiniCustomer(request), params.id);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.get(
+    "/mini/invoice/requests",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.listMiniInvoiceRequests(ensureMiniCustomer(request));
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/mini/invoice/requests",
+    {
+      preHandler: async (request) => ensureMiniAuthorization(request)
+    },
+    async (request) => {
+      const body = miniInvoiceRequestBodySchema.parse(request.body ?? {});
+      const data = await coreService.createMiniInvoiceRequest(ensureMiniCustomer(request), body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
   app.post(
     "/admin/customers/token/issue",
     {
@@ -664,6 +984,228 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
+  app.get(
+    "/admin/registration-applications",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const query = adminRegistrationApplicationsQuerySchema.parse(request.query ?? {});
+      const data = await coreService.listRegistrationApplicationsForAdmin(query.status);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/registration-applications/:id/review",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const params = adminRegistrationApplicationParamsSchema.parse(request.params ?? {});
+      const body = adminReviewRegistrationBodySchema.parse(request.body ?? {});
+      const data = await coreService.reviewRegistrationApplicationForAdmin({
+        id: params.id,
+        action: body.action,
+        remark: body.remark
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/customers/:id/bind",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const params = adminCustomerParamsSchema.parse(request.params ?? {});
+      const body = adminBindCustomerBodySchema.parse(request.body ?? {});
+      const data = await coreService.bindKingdeeCustomerForAdmin({
+        customerId: params.id,
+        kingdeeCustomerId: body.kingdeeCustomerId
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/customers/:id/unbind",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const params = adminCustomerParamsSchema.parse(request.params ?? {});
+      const data = await coreService.unbindKingdeeCustomerForAdmin(params.id);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/customers/:id/status",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const params = adminCustomerParamsSchema.parse(request.params ?? {});
+      const body = adminUpdateCustomerStatusBodySchema.parse(request.body ?? {});
+      const data = await coreService.updateCustomerStatusForAdmin({
+        customerId: params.id,
+        status: body.status,
+        remark: body.remark
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/customers/:id/remove",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const params = adminCustomerParamsSchema.parse(request.params ?? {});
+      const body = adminRemoveCustomerBodySchema.parse(request.body ?? {});
+      const data = await coreService.removeCustomerForAdmin(params.id, body.remark);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/settings/webhook/test",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminWebhookTestBodySchema.parse(request.body ?? {});
+      const data = await coreService.testAdminWebhook({
+        key: body.key,
+        webhookUrl: body.webhookUrl,
+        title: body.title,
+        lines: body.lines
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/settings/test-webhook",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const query = adminSettingsTestWebhookQuerySchema.parse(request.query ?? {});
+      const body = adminWebhookTestBodySchema.parse(request.body ?? {});
+      const typeKey = query.type ? ADMIN_WEBHOOK_KEY_BY_TYPE[query.type] : undefined;
+      const data = await coreService.testAdminWebhook({
+        key: body.key ?? typeKey,
+        webhookUrl: body.webhookUrl,
+        title: body.title ?? (query.type ? `${query.type} webhook 测试` : undefined),
+        lines: body.lines
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.get(
+    "/admin/settings",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.getAdminSettings();
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.put(
+    "/admin/settings",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminSettingsUpdateBodySchema.parse(request.body ?? {});
+      const data = await coreService.updateAdminSettings(body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/settings",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminSettingsUpdateBodySchema.parse(request.body ?? {});
+      const data = await coreService.updateAdminSettings(body);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/uploads/image",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminImageUploadBodySchema.parse(request.body ?? {});
+      const data = await coreService.adminUploadImage({
+        dataUrl: body.dataUrl,
+        filename: body.filename,
+        folder: body.folder
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
   app.post(
     "/admin/products/upsert",
     {
@@ -688,6 +1230,44 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const query = adminProductsQuerySchema.parse(request.query ?? {});
       const data = await coreService.adminListProducts(query.status);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.get(
+    "/admin/products/kingdee/list",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const query = adminKingdeeMaterialListQuerySchema.parse(request.query ?? {});
+      const data = await coreService.adminListKingdeeMaterials({
+        page: query.page,
+        pageSize: query.pageSize,
+        search: query.search
+      });
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/products/kingdee/one-click-listing",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminKingdeeOneClickListingBodySchema.parse(request.body ?? {});
+      const data = await coreService.adminOneClickListKingdeeProducts({
+        items: body.items
+      });
       return {
         ok: true,
         requestId: request.id,
@@ -819,6 +1399,37 @@ export async function coreRoutes(app: FastifyInstance): Promise<void> {
         requestId: request.id,
         data,
         warnings
+      };
+    }
+  );
+
+  app.get(
+    "/admin/diagnostics/kingdee",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const data = await coreService.runAdminKingdeeDiagnostics();
+      return {
+        ok: true,
+        requestId: request.id,
+        data
+      };
+    }
+  );
+
+  app.post(
+    "/admin/diagnostics/orders/retry-writeback",
+    {
+      preHandler: async (request) => ensureAdminAuthorization(request)
+    },
+    async (request) => {
+      const body = adminDiagnosticsRetryWritebackBodySchema.parse(request.body ?? {});
+      const data = await coreService.retryOrderWritebackByOrderNo(body.orderNo);
+      return {
+        ok: true,
+        requestId: request.id,
+        data
       };
     }
   );

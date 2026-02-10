@@ -1,0 +1,54 @@
+<view class="container safe-bottom has-fixed-action feedback-page page-shell">
+  <view class="card">
+    <view class="title">请选择类型</view>
+    <view class="feedback-types">
+      <view
+        class="feedback-type {{typeIndex === index ? 'active' : ''}}"
+        wx:for="{{types}}"
+        wx:key="value"
+        data-index="{{index}}"
+        bindtap="onTypeChange"
+      >
+        <view class="radio">{{typeIndex === index ? '✓' : ''}}</view>
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">相关描述</view>
+    <textarea
+      class="textarea"
+      value="{{description}}"
+      bindinput="onDescriptionInput"
+      maxlength="500"
+      placeholder="请描述您遇到的问题，建议上传图片"
+    ></textarea>
+
+    <view class="image-row">
+      <view class="upload-box" bindtap="chooseImages" wx:if="{{images.length < 3}}">+
+        <text class="upload-text">上传图片</text>
+      </view>
+      <image class="upload-preview" wx:for="{{images}}" wx:key="*this" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}"></image>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">联系方式</view>
+    <input
+      class="input"
+      type="number"
+      maxlength="11"
+      value="{{contactPhone}}"
+      bindinput="onContactPhoneInput"
+      placeholder="请输入您的联系电话"
+    />
+  </view>
+
+  <view class="fixed-action-bar feedback-actions">
+    <view class="action-row">
+      <button class="btn-plain action-btn" bindtap="contactService" disabled="{{submitting}}">联系客服</button>
+      <button class="btn-primary action-btn" bindtap="submitFeedback" loading="{{submitting}}" disabled="{{submitting}}">提交</button>
+    </view>
+  </view>
+</view>

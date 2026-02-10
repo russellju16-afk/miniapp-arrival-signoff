@@ -1,15 +1,50 @@
 <view class="container">
-  <block wx:if="{{loading}}">
-    <view class="empty">加载中...</view>
+  <block wx:if="{{loading && !detail}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">对账单加载中</view>
+        <view class="empty-desc">正在获取账期与明细信息</view>
+        <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{errorMessage && !detail}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">对账单加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goStatements" disabled="{{loading || actionLoading}}">返回列表</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:elif="{{!detail}}">
-    <view class="empty">未找到对账单</view>
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">未找到对账单</view>
+        <view class="empty-desc">当前单据可能已失效，请返回列表重新查询</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="goStatements" disabled="{{actionLoading}}">返回列表</button>
+          <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:else>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading || confirming}}">刷新重试</button>
+    </view>
     <view class="card">
-      <view class="title">对账单信息</view>
+      <view class="row section-head">
+        <view class="title">对账单信息</view>
+        <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading || confirming}}">刷新</button>
+      </view>
       <view class="row">
         <text class="label">账期</text>
         <text class="value">{{detail.period_text}}</text>
@@ -35,7 +70,14 @@
     <view class="card">
       <view class="title">明细列表</view>
       <block wx:if="{{lines.length === 0}}">
-        <view class="sub-title">暂无明细</view>
+        <view class="empty-state lines-empty">
+          <view class="empty-title">暂无明细</view>
+          <view class="empty-desc">可以刷新后重试，或返回列表切换账期</view>
+          <view class="cta-row">
+            <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading || confirming}}">刷新重试</button>
+            <button class="btn-plain cta-btn" bindtap="goStatements" disabled="{{loading || actionLoading || confirming}}">返回列表</button>
+          </view>
+        </view>
       </block>
       <block wx:else>
         <view class="line" wx:for="{{lines}}" wx:key="id">

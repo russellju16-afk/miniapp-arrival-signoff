@@ -14,20 +14,52 @@
       </picker>
     </view>
     <view class="actions">
-      <button class="btn-primary action-btn" bindtap="search">查询</button>
-      <button class="btn-plain action-btn" bindtap="goDeliveries">返回签收列表</button>
+      <button class="btn-primary action-btn" bindtap="search" loading="{{loading}}" disabled="{{loading || actionLoading}}">查询</button>
+      <button class="btn-plain action-btn" bindtap="goDeliveries" disabled="{{loading || actionLoading}}">返回签收列表</button>
     </view>
   </view>
 
-  <block wx:if="{{loading}}">
-    <view class="empty">加载中...</view>
+  <block wx:if="{{loading && list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">对账单加载中</view>
+        <view class="empty-desc">正在按筛选条件查询数据</view>
+        <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{errorMessage && list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">对账单加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goDeliveries" disabled="{{loading || actionLoading}}">去签收列表</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:elif="{{list.length === 0}}">
-    <view class="empty">该日期范围暂无对账单</view>
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">暂无对账单</view>
+        <view class="empty-desc">可调整日期范围后再次查询</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="search" disabled="{{loading || actionLoading}}">重新查询</button>
+          <button class="btn-plain cta-btn" bindtap="goDeliveries" disabled="{{loading || actionLoading}}">返回签收列表</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:else>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+    </view>
     <view class="card item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
       <view class="row">
         <text class="label">账期</text>

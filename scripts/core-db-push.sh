@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS customers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   phone TEXT,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  company_name TEXT,
+  contact_name TEXT,
+  contact_phone TEXT,
   kingdee_customer_id TEXT,
   wechat_openid TEXT,
   access_token TEXT UNIQUE,
@@ -66,6 +70,86 @@ CREATE TABLE IF NOT EXISTS customers (
 );
 CREATE INDEX IF NOT EXISTS customers_wechat_openid_idx ON customers (wechat_openid);
 CREATE INDEX IF NOT EXISTS customers_kingdee_customer_id_idx ON customers (kingdee_customer_id);
+CREATE INDEX IF NOT EXISTS customers_status_idx ON customers (status);
+
+CREATE TABLE IF NOT EXISTS customer_registration_applications (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at DATETIME,
+  review_remark TEXT,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS customer_registration_apps_customer_status_idx ON customer_registration_applications (customer_id, status);
+
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  receiver_name TEXT NOT NULL,
+  receiver_phone TEXT NOT NULL,
+  province TEXT NOT NULL,
+  city TEXT NOT NULL,
+  district TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS customer_addresses_customer_default_idx ON customer_addresses (customer_id, is_default);
+
+CREATE TABLE IF NOT EXISTS invoice_profiles (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  tax_no TEXT NOT NULL,
+  bank_name TEXT,
+  bank_account TEXT,
+  address_phone TEXT,
+  email TEXT,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS invoice_profiles_customer_default_idx ON invoice_profiles (customer_id, is_default);
+
+CREATE TABLE IF NOT EXISTS quote_requests (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  remark TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS quote_requests_customer_status_idx ON quote_requests (customer_id, status);
+
+CREATE TABLE IF NOT EXISTS invoice_requests (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  order_ids_json TEXT NOT NULL,
+  invoice_profile_id TEXT,
+  remark TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  kingdee_ref_id TEXT,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+  FOREIGN KEY (invoice_profile_id) REFERENCES invoice_profiles(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS invoice_requests_customer_status_idx ON invoice_requests (customer_id, status);
+CREATE INDEX IF NOT EXISTS invoice_requests_profile_idx ON invoice_requests (invoice_profile_id);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE IF NOT EXISTS deliveries (
   id TEXT PRIMARY KEY,
@@ -160,6 +244,21 @@ CREATE TABLE IF NOT EXISTS product_skus (
 );
 CREATE INDEX IF NOT EXISTS product_skus_product_status_idx ON product_skus (product_id, status);
 
+CREATE TABLE IF NOT EXISTS price_caches (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  sku_id TEXT NOT NULL,
+  unit_price REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'CNY',
+  source TEXT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+  FOREIGN KEY (sku_id) REFERENCES product_skus(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS price_caches_customer_sku_unique ON price_caches (customer_id, sku_id);
+CREATE INDEX IF NOT EXISTS price_caches_sku_idx ON price_caches (sku_id);
+
 CREATE TABLE IF NOT EXISTS carts (
   id TEXT PRIMARY KEY,
   customer_id TEXT NOT NULL UNIQUE,
@@ -194,6 +293,7 @@ CREATE TABLE IF NOT EXISTS sales_orders (
   currency TEXT NOT NULL DEFAULT 'CNY',
   total_amount REAL NOT NULL DEFAULT 0,
   remark TEXT,
+  delivery_info_json TEXT,
   idempotency_key TEXT,
   kingdee_order_id TEXT,
   kingdee_order_number TEXT,
@@ -247,12 +347,17 @@ SQL
 add_column_if_missing "customers" "phone" "TEXT"
 add_column_if_missing "customers" "access_token" "TEXT"
 add_column_if_missing "customers" "token_expires_at" "DATETIME"
+add_column_if_missing "customers" "status" "TEXT NOT NULL DEFAULT 'ACTIVE'"
+add_column_if_missing "customers" "company_name" "TEXT"
+add_column_if_missing "customers" "contact_name" "TEXT"
+add_column_if_missing "customers" "contact_phone" "TEXT"
 add_column_if_missing "deliveries" "sales_order_id" "TEXT"
 add_column_if_missing "deliveries" "source_doc_no" "TEXT"
 add_column_if_missing "deliveries" "details_json" "TEXT"
 add_column_if_missing "deliveries" "synced_at" "DATETIME"
 add_column_if_missing "deliveries" "sign_idempotency_key" "TEXT"
 add_column_if_missing "reconciliations" "confirm_remark" "TEXT"
+add_column_if_missing "sales_orders" "delivery_info_json" "TEXT"
 add_column_if_missing "order_writeback_logs" "request_id" "TEXT"
 add_column_if_missing "order_writeback_logs" "trace_id" "TEXT"
 add_column_if_missing "order_writeback_logs" "summary" "TEXT"

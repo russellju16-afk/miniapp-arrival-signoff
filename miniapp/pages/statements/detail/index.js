@@ -7,6 +7,8 @@ Page({
     id: '',
     loading: false,
     confirming: false,
+    actionLoading: false,
+    errorMessage: '',
     remark: '',
     detail: null,
     lines: []
@@ -26,12 +28,13 @@ Page({
   async fetchDetail() {
     const id = this.data.id;
     if (!id) {
+      this.setData({ errorMessage: '参数缺失，无法加载对账单' });
       wx.showToast({ title: '参数缺失', icon: 'none' });
       return;
     }
 
     try {
-      this.setData({ loading: true });
+      this.setData({ loading: true, errorMessage: '' });
       const res = await api.getStatementDetail(id);
       const detail = res.data || null;
       const lines = Array.isArray(detail && detail.lines) ? detail.lines : [];
@@ -58,7 +61,9 @@ Page({
         }))
       });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
@@ -69,7 +74,7 @@ Page({
   },
 
   async confirm() {
-    if (this.data.confirming) {
+    if (this.data.confirming || this.data.loading) {
       return;
     }
 
@@ -122,5 +127,23 @@ Page({
       return false;
     }
     return true;
+  },
+
+  refreshData() {
+    if (this.data.loading) {
+      return;
+    }
+    this.fetchDetail();
+  },
+
+  goStatements() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
+    wx.navigateTo({ url: '/pages/statements/list/index' });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   }
 });

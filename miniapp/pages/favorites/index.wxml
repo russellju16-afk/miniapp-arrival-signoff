@@ -1,16 +1,45 @@
 <view class="container">
-  <block wx:if="{{loading}}">
-    <view class="empty">加载中...</view>
+  <block wx:if="{{loading && list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">收藏加载中</view>
+        <view class="empty-desc">正在同步你关注的商品</view>
+        <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{errorMessage && list.length === 0}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">收藏加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去商品页</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:elif="{{list.length === 0}}">
     <view class="card">
-      <view class="empty">还没有收藏商品，快去逛逛吧。</view>
-      <button class="btn-primary" bindtap="goProducts">去逛商城</button>
+      <view class="empty-state">
+        <view class="empty-title">还没有收藏商品</view>
+        <view class="empty-desc">浏览商品详情后可一键收藏，方便快速回购</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去逛商城</button>
+          <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+        </view>
+      </view>
     </view>
   </block>
 
   <block wx:else>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+    </view>
     <view class="card item" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
       <view class="row">
         <text class="title">{{item.name}}</text>
@@ -18,7 +47,7 @@
       </view>
       <view class="sub-title">商品编码：{{item.code}}</view>
       <view class="sub-title" wx:if="{{item.description}}">{{item.description}}</view>
-      <button class="btn-plain small-btn" catchtap="toggleFavorite" data-id="{{item.id}}">取消收藏</button>
+      <button class="btn-plain small-btn" catchtap="toggleFavorite" data-id="{{item.id}}" disabled="{{loading || actionLoading}}">取消收藏</button>
     </view>
   </block>
 </view>

@@ -1,35 +1,76 @@
-<view class="container">
-  <view class="card tabs">
-    <view
-      class="tab {{tabIndex === index ? 'tab-active' : ''}}"
-      wx:for="{{tabs}}"
-      wx:key="value"
-      data-index="{{index}}"
-      bindtap="onTabChange"
-    >
-      {{item.label}}
+<view class="coupons-page page-shell">
+  <view class="sticky-tabs">
+    <view class="tabs-strip">
+      <view
+        class="tab {{tabIndex === index ? 'tab-active' : ''}}"
+        wx:for="{{tabs}}"
+        wx:key="value"
+        data-index="{{index}}"
+        bindtap="onTabChange"
+      >
+        {{item.label}}
+      </view>
     </view>
   </view>
 
-  <block wx:if="{{displayList.length === 0}}">
-    <view class="card">
-      <view class="empty">当前分类暂无优惠券</view>
-      <button class="btn-primary" bindtap="goProducts">去下单</button>
+  <view class="container safe-bottom">
+    <view class="card alert-card" wx:if="{{errorMessage && displayList.length > 0}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
     </view>
-  </block>
 
-  <block wx:else>
-    <view class="card item {{item.status}}" wx:for="{{displayList}}" wx:key="id">
-      <view class="row">
-        <text class="title">{{item.name}}</text>
-        <text class="value-text">{{item.valueText}}</text>
+    <block wx:if="{{loading && displayList.length === 0}}">
+      <view class="card">
+        <view class="empty-state">
+          <view class="empty-illustration">⌛</view>
+          <view class="empty-title">优惠券加载中</view>
+          <view class="empty-desc">正在同步优惠券状态</view>
+          <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+        </view>
       </view>
-      <view class="sub-title">门槛：满 ¥{{item.minAmountText}}</view>
-      <view class="sub-title">有效期至：{{item.expireText}}</view>
-      <view class="status {{item.status}}">
-        {{item.status === 'AVAILABLE' ? '可用' : item.status === 'USED' ? '已使用' : '已过期'}}
+    </block>
+
+    <block wx:elif="{{errorMessage && displayList.length === 0}}">
+      <view class="card">
+        <view class="empty-state">
+          <view class="empty-illustration">!</view>
+          <view class="empty-title">优惠券加载失败</view>
+          <view class="empty-desc">{{errorMessage}}</view>
+          <view class="cta-row">
+            <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+            <button class="btn-plain cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去下单</button>
+          </view>
+        </view>
       </view>
-      <view class="sub-title" wx:if="{{item.description}}">说明：{{item.description}}</view>
-    </view>
-  </block>
+    </block>
+
+    <block wx:elif="{{displayList.length === 0}}">
+      <view class="card">
+        <view class="empty-state">
+          <view class="empty-illustration">券</view>
+          <view class="empty-title">当前分类暂无优惠券</view>
+          <view class="empty-desc">可切换分类查看，或先去下单获取新券</view>
+          <view class="cta-row">
+            <button class="btn-primary cta-btn" bindtap="goProducts" disabled="{{loading || actionLoading}}">去下单</button>
+            <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="card item {{item.status}}" wx:for="{{displayList}}" wx:key="id">
+        <view class="row">
+          <text class="title coupon-name">{{item.name}}</text>
+          <text class="value-text">{{item.valueText}}</text>
+        </view>
+        <view class="sub-title">门槛：满 ¥{{item.minAmountText}}</view>
+        <view class="sub-title">有效期至：{{item.expireText}}</view>
+        <view class="status {{item.status}}">
+          {{item.status === 'AVAILABLE' ? '可用' : item.status === 'USED' ? '已使用' : '已过期'}}
+        </view>
+        <view class="sub-title" wx:if="{{item.description}}">说明：{{item.description}}</view>
+      </view>
+    </block>
+  </view>
 </view>

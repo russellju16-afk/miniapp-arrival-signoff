@@ -6,6 +6,8 @@ Page({
   data: {
     id: '',
     loading: false,
+    errorMessage: '',
+    actionLoading: false,
     detail: null,
     items: []
   },
@@ -24,12 +26,14 @@ Page({
   async fetchDetail() {
     const id = this.data.id;
     if (!id) {
+      const errorMessage = '参数缺失，无法加载单据';
+      this.setData({ errorMessage });
       wx.showToast({ title: '参数缺失', icon: 'none' });
       return;
     }
 
     try {
-      this.setData({ loading: true });
+      this.setData({ loading: true, errorMessage: '' });
       const res = await api.getDeliveryDetail(id);
       const detail = res.data || null;
 
@@ -49,7 +53,9 @@ Page({
         items
       });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
@@ -77,21 +83,53 @@ Page({
   },
 
   goSign() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
     wx.navigateTo({
       url: `/pages/deliveries/sign/index?id=${this.data.id}`
     });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   },
 
   goOrderDetail() {
+    if (this.data.actionLoading) {
+      return;
+    }
     const detail = this.data.detail || {};
     const orderId = detail.orderId || detail.salesOrderId || detail.sales_order_id;
     if (!orderId) {
       wx.showToast({ title: '未关联订单', icon: 'none' });
       return;
     }
+    this.setData({ actionLoading: true });
     wx.navigateTo({
       url: `/pages/orders/detail/index?id=${orderId}`
     });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
+  },
+
+  refreshData() {
+    if (this.data.loading) {
+      return;
+    }
+    this.fetchDetail();
+  },
+
+  goDeliveries() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
+    wx.navigateTo({ url: '/pages/deliveries/list/index' });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   },
 
   ensureLogin() {

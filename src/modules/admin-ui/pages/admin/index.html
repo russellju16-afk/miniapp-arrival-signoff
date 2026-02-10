@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>运营后台</title>
+    <link rel="stylesheet" href="/admin/assets/vendor/reset.css?v=20260208b" />
+    <link rel="stylesheet" href="/admin/assets/styles.css?v=20260208b" />
+    <script src="/admin/assets/vendor/react.production.min.js?v=20260208b"></script>
+    <script src="/admin/assets/vendor/react-dom.production.min.js?v=20260208b"></script>
+    <script src="/admin/assets/vendor/dayjs.min.js?v=20260208c"></script>
+    <script src="/admin/assets/vendor/antd.min.js?v=20260208b"></script>
+    <style>
+      .admin-boot {
+        padding: 20px;
+        color: #0f172a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .admin-boot pre {
+        white-space: pre-wrap;
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        padding: 10px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" class="admin-boot">后台加载中...</div>
+    <script>
+      (function () {
+        function toText(errorLike) {
+          if (!errorLike) return "";
+          if (typeof errorLike === "string") return errorLike;
+          if (errorLike instanceof Error) return errorLike.stack || errorLike.message;
+          try {
+            return JSON.stringify(errorLike);
+          } catch {
+            return String(errorLike);
+          }
+        }
+
+        function renderFatal(title, detail) {
+          var root = document.getElementById("root");
+          if (!root) return;
+          root.className = "admin-boot";
+          root.innerHTML =
+            "<h3>" +
+            title +
+            "</h3><p>请把下面错误截图发给技术支持处理。</p><pre>" +
+            (detail || "unknown error") +
+            "</pre>";
+        }
+
+        window.__renderAdminFatal = renderFatal;
+        window.addEventListener("error", function (event) {
+          var file = event && event.filename ? event.filename : "";
+          var line = event && event.lineno ? ":" + event.lineno : "";
+          var col = event && event.colno ? ":" + event.colno : "";
+          var suffix = file ? "\n" + file + line + col : "";
+          renderFatal("后台脚本加载失败", (event && event.message ? event.message : "") + suffix);
+        });
+        window.addEventListener("unhandledrejection", function (event) {
+          renderFatal("后台脚本执行失败", toText(event && event.reason));
+        });
+      })();
+    </script>
+    <script
+      type="module"
+      src="/admin/assets/main.js?v=20260208b"
+      onerror="window.__renderAdminFatal && window.__renderAdminFatal('后台入口脚本加载失败', '入口脚本加载失败')"
+    ></script>
+  </body>
+</html>

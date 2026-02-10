@@ -1,52 +1,78 @@
 <view class="container">
   <view class="card actions">
-    <button class="btn-primary action-btn" bindtap="openCreate">新增地址</button>
-    <button class="btn-plain action-btn" bindtap="chooseWechatAddress" wx:if="{{showForm}}">导入微信地址</button>
+    <button class="btn-primary action-btn" bindtap="openCreate" disabled="{{loading || actionLoading || submitting}}">新增地址</button>
+    <button class="btn-plain action-btn" bindtap="chooseWechatAddress" wx:if="{{showForm}}" disabled="{{loading || actionLoading || submitting}}">导入微信地址</button>
+    <button class="btn-plain action-btn" bindtap="refreshList" disabled="{{loading || actionLoading || submitting}}">刷新</button>
   </view>
 
-  <block wx:if="{{list.length === 0}}">
-    <view class="card">
-      <view class="empty">暂无地址，请先新增。</view>
+  <view class="card" wx:if="{{loading && list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">地址加载中</view>
+      <view class="empty-desc">正在同步收货地址，请稍候</view>
+      <button class="btn-plain" bindtap="refreshList" disabled="{{loading}}">刷新重试</button>
     </view>
-  </block>
+  </view>
 
-  <block wx:else>
-    <view class="card item" wx:for="{{list}}" wx:key="id">
-      <view class="row">
-        <text class="title">{{item.receiver}} {{item.phone}}</text>
-        <text class="tag" wx:if="{{item.isDefault}}">默认</text>
-      </view>
-      <view class="sub-title">{{item.province}}{{item.city}}{{item.district}}{{item.detail}}</view>
-      <view class="sub-title" wx:if="{{item.tag}}">标签：{{item.tag}}</view>
-
-      <view class="ops">
-        <button class="btn-plain mini-btn" bindtap="openEdit" data-id="{{item.id}}">编辑</button>
-        <button class="btn-plain mini-btn" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{!item.isDefault}}">设默认</button>
-        <button class="btn-plain mini-btn danger" bindtap="removeAddress" data-id="{{item.id}}">删除</button>
-        <button class="btn-primary mini-btn" bindtap="selectAddress" data-id="{{item.id}}" wx:if="{{selectMode}}">选中</button>
+  <view class="card" wx:elif="{{errorMessage && list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">地址加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshList" disabled="{{loading || actionLoading || submitting}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="openCreate" disabled="{{loading || actionLoading || submitting}}">手动新增</button>
       </view>
     </view>
-  </block>
+  </view>
+
+  <view class="card" wx:elif="{{list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-title">暂无地址</view>
+      <view class="empty-desc">建议先新增默认地址，便于下单结算</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="openCreate" disabled="{{loading || actionLoading || submitting}}">新增地址</button>
+        <button class="btn-plain cta-btn" bindtap="refreshList" disabled="{{loading || actionLoading || submitting}}">刷新列表</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card alert-card" wx:if="{{errorMessage && list.length > 0}}">
+    <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+    <button class="btn-plain mini-btn" bindtap="refreshList" disabled="{{loading || actionLoading || submitting}}">刷新重试</button>
+  </view>
+
+  <view class="card item" wx:for="{{list}}" wx:key="id">
+    <view class="row">
+      <view class="value">{{item.receiverName}} {{item.receiverPhone}}</view>
+      <view class="badge-ok" wx:if="{{item.isDefault}}">默认</view>
+    </view>
+    <view class="sub-title">{{item.province}}{{item.city}}{{item.district}}{{item.detail}}</view>
+
+    <view class="ops">
+      <button class="btn-plain mini-btn" bindtap="openEdit" data-id="{{item.id}}" disabled="{{loading || actionLoading || submitting}}">编辑</button>
+      <button class="btn-plain mini-btn" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{!item.isDefault}}" disabled="{{loading || actionLoading || submitting}}">设默认</button>
+      <button class="btn-plain mini-btn danger" bindtap="removeAddress" data-id="{{item.id}}" disabled="{{loading || actionLoading || submitting}}">删除</button>
+      <button class="btn-primary mini-btn" bindtap="selectAddress" data-id="{{item.id}}" wx:if="{{selectMode}}" disabled="{{loading || actionLoading || submitting}}">选中</button>
+    </view>
+  </view>
 
   <view class="mask" wx:if="{{showForm}}">
     <view class="panel">
       <view class="title">{{editingId ? '编辑地址' : '新增地址'}}</view>
-      <input class="input" placeholder="收货人" data-field="receiver" value="{{form.receiver}}" bindinput="onFormInput" />
-      <input class="input" placeholder="手机号" type="number" data-field="phone" value="{{form.phone}}" bindinput="onFormInput" />
+      <input class="input" placeholder="收货人" data-field="receiverName" value="{{form.receiverName}}" bindinput="onFormInput" />
+      <input class="input" placeholder="手机号" type="number" data-field="receiverPhone" value="{{form.receiverPhone}}" bindinput="onFormInput" />
       <input class="input" placeholder="省" data-field="province" value="{{form.province}}" bindinput="onFormInput" />
       <input class="input" placeholder="市" data-field="city" value="{{form.city}}" bindinput="onFormInput" />
       <input class="input" placeholder="区/县" data-field="district" value="{{form.district}}" bindinput="onFormInput" />
       <input class="input" placeholder="详细地址" data-field="detail" value="{{form.detail}}" bindinput="onFormInput" />
-      <input class="input" placeholder="标签（如 家/公司）" data-field="tag" value="{{form.tag}}" bindinput="onFormInput" />
 
       <view class="row switch-row">
         <text class="label">设为默认地址</text>
-        <switch checked="{{form.isDefault}}" bindchange="onDefaultSwitch" color="#2563eb" />
+        <switch checked="{{form.isDefault}}" bindchange="onDefaultSwitch" color="#1677FF" />
       </view>
 
       <view class="ops">
-        <button class="btn-plain mini-btn" bindtap="cancelForm">取消</button>
-        <button class="btn-primary mini-btn" bindtap="submitForm">保存</button>
+        <button class="btn-plain mini-btn" bindtap="cancelForm" disabled="{{submitting}}">取消</button>
+        <button class="btn-primary mini-btn" bindtap="submitForm" loading="{{submitting}}" disabled="{{submitting}}">保存</button>
       </view>
     </view>
   </view>

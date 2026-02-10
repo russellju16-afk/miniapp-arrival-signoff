@@ -22,6 +22,7 @@
     "smoke:core": "bash scripts/smoke-core.sh",
     "smoke:mini": "bash scripts/smoke-mini.sh",
     "smoke:mall": "bash scripts/smoke-mall.sh",
+    "smoke:admin": "bash scripts/smoke-admin.sh",
     "smoke:mall:live": "bash scripts/smoke-mall-live.sh",
     "prisma:generate": "prisma generate",
     "core:prisma:generate": "prisma generate --schema prisma/core/schema.prisma",

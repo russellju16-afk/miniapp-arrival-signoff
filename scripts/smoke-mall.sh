@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 export KD_MOCK_MODE="${KD_MOCK_MODE:-true}"
-export DB_URL="${DB_URL:-file:./prisma/core/dev.db}"
+export DB_URL="${DB_URL:-file:./prisma/core/smoke.db}"
 export ADMIN_TOKEN="${ADMIN_TOKEN:-dev-admin-token}"
 
 echo "[smoke-mall] doctor:env"

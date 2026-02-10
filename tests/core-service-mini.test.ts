@@ -1,4 +1,19 @@
 describe("core service mini/business", () => {
+  const makeMiniCustomer = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: "customer-1",
+    name: "客户A",
+    phone: null,
+    status: "ACTIVE",
+    companyName: null,
+    contactName: null,
+    contactPhone: null,
+    wechatOpenid: "openid-1",
+    kingdeeCustomerId: null,
+    accessToken: "token-1",
+    tokenExpiresAt: new Date("2026-03-08T00:00:00.000Z"),
+    ...overrides
+  });
+
   beforeEach(() => {
     jest.resetModules();
   });
@@ -214,14 +229,9 @@ describe("core service mini/business", () => {
 
     const { coreService } = await import("../src/modules/core/core.service");
     const result = await coreService.createMiniOrder(
-      {
-        id: "customer-1",
-        name: "客户A",
-        phone: null,
-        kingdeeCustomerId: null,
-        accessToken: "token-1",
-        tokenExpiresAt: new Date("2026-03-08T00:00:00.000Z")
-      },
+      makeMiniCustomer({
+        kingdeeCustomerId: "KD-CUST-1"
+      }),
       { remark: "重复提交" },
       "idem-order-1"
     );
@@ -240,6 +250,8 @@ describe("core service mini/business", () => {
     jest.doMock("../src/modules/core/core.repo", () => ({
       coreRepo: {
         findSalesOrderByIdempotencyKey: jest.fn().mockResolvedValue(null),
+        upsertPriceCache: jest.fn().mockResolvedValue(undefined),
+        getSetting: jest.fn().mockResolvedValue(null),
         findSkuById: jest.fn().mockResolvedValue({
           id: "sku-1",
           productId: "product-1",
@@ -292,14 +304,9 @@ describe("core service mini/business", () => {
 
     await expect(
       coreService.createMiniOrder(
-        {
-          id: "customer-1",
-          name: "客户A",
-          phone: null,
-          kingdeeCustomerId: "KD-CUST-1",
-          accessToken: "token-1",
-          tokenExpiresAt: new Date("2026-03-08T00:00:00.000Z")
-        },
+        makeMiniCustomer({
+          kingdeeCustomerId: "KD-CUST-1"
+        }),
         {
           items: [{ skuId: "sku-1", qty: 1 }],
           remark: "测试"
@@ -321,6 +328,8 @@ describe("core service mini/business", () => {
     jest.doMock("../src/modules/core/core.repo", () => ({
       coreRepo: {
         findSalesOrderByIdempotencyKey: jest.fn().mockResolvedValue(null),
+        upsertPriceCache: jest.fn().mockResolvedValue(undefined),
+        getSetting: jest.fn().mockResolvedValue(null),
         findSkuById: jest.fn().mockResolvedValue({
           id: "sku-2",
           productId: "product-2",
@@ -403,14 +412,9 @@ describe("core service mini/business", () => {
     });
 
     const result = await coreService.createMiniOrder(
-      {
-        id: "customer-1",
-        name: "客户A",
-        phone: null,
-        kingdeeCustomerId: "KD-CUST-1",
-        accessToken: "token-1",
-        tokenExpiresAt: new Date("2026-03-08T00:00:00.000Z")
-      },
+      makeMiniCustomer({
+        kingdeeCustomerId: "KD-CUST-1"
+      }),
       {
         items: [{ skuId: "sku-2", qty: 2 }],
         remark: "测试部分结算"
@@ -484,14 +488,7 @@ describe("core service mini/business", () => {
 
     await expect(
       coreService.cancelMiniOrder(
-        {
-          id: "customer-1",
-          name: "客户A",
-          phone: null,
-          kingdeeCustomerId: null,
-          accessToken: "token-1",
-          tokenExpiresAt: new Date("2026-03-08T00:00:00.000Z")
-        },
+        makeMiniCustomer(),
         "order-1",
         "取消测试"
       )

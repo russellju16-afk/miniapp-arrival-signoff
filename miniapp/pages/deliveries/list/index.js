@@ -5,7 +5,15 @@ const { formatDate } = require('../../../utils/format');
 Page({
   data: {
     loading: false,
-    list: []
+    refreshing: false,
+    actionLoading: false,
+    errorMessage: '',
+    list: [],
+    profile: null,
+    capabilityTip: '',
+    pendingCount: 0,
+    todayCount: 0,
+    notice: '签收完成后会自动进入对账流程。如出现到货差异，请在签收备注里注明。'
   },
 
   onShow() {
@@ -16,69 +24,133 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.fetchList().finally(() => wx.stopPullDownRefresh());
+    this.refreshData().finally(() => wx.stopPullDownRefresh());
   },
 
   async fetchList() {
     try {
-      this.setData({ loading: true });
-      const res = await api.getDeliveries();
-      const payload = res.data || {};
+      this.setData({ loading: true, errorMessage: '' });
+      const [deliveriesRes, profileRes] = await Promise.allSettled([api.getDeliveries(), api.getMiniProfile()]);
+      if (deliveriesRes.status !== 'fulfilled') {
+        throw deliveriesRes.reason || new Error('加载失败');
+      }
+
+      const payload = deliveriesRes.value.data || {};
       const rawList = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
       const list = rawList.map((item) => ({
         ...item,
-        ship_date_text: formatDate(item.shipDate || item.ship_date || item.createdAt)
+        ship_date_text: formatDate(item.shipDate || item.ship_date || item.createdAt),
+        isSigned: item.status === 'SIGNED',
+        statusText: this.formatStatus(item.status)
       }));
-      this.setData({ list });
+
+      const today = formatDate(new Date());
+      const profile = profileRes.status === 'fulfilled' ? profileRes.value.data || null : this.data.profile;
+
+      this.setData({
+        list,
+        profile,
+        pendingCount: list.filter((item) => !item.isSigned).length,
+        todayCount: list.filter((item) => item.ship_date_text === today).length,
+        capabilityTip: this.buildCapabilityTip(profile)
+      });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  refreshData() {
-    this.fetchList();
+  async refreshData() {
+    if (this.data.loading || this.data.refreshing) {
+      return;
+    }
+    this.setData({ refreshing: true });
+    try {
+      await this.fetchList();
+    } finally {
+      this.setData({ refreshing: false });
+    }
+  },
+
+  formatStatus(status) {
+    const map = {
+      CREATED: '待签收',
+      SIGNED: '已签收'
+    };
+    return map[status] || status || '-';
+  },
+
+  buildCapabilityTip(profile) {
+    if (!profile || !profile.capabilities) {
+      return '';
+    }
+    if (profile.status !== 'ACTIVE') {
+      return '账号审核中：支持浏览与签收，部分业务能力可能受限。';
+    }
+    return '账号已激活：支持订货、对账与开票申请。';
+  },
+
+  runNavAction(handler) {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
+    try {
+      handler();
+    } finally {
+      setTimeout(() => {
+        this.setData({ actionLoading: false });
+      }, 320);
+    }
   },
 
   goDetail(e) {
+    if (this.data.actionLoading) {
+      return;
+    }
     const { id } = e.currentTarget.dataset;
     if (!id) {
       return;
     }
-    wx.navigateTo({
-      url: `/pages/deliveries/detail/index?id=${id}`
+    this.runNavAction(() => {
+      wx.navigateTo({
+        url: `/pages/deliveries/detail/index?id=${id}`
+      });
     });
   },
 
   goStatements() {
-    wx.navigateTo({
-      url: '/pages/statements/list/index'
+    this.runNavAction(() => {
+      wx.navigateTo({
+        url: '/pages/statements/list/index'
+      });
     });
   },
 
   goProducts() {
-    wx.navigateTo({
-      url: '/pages/products/list/index'
+    this.runNavAction(() => {
+      wx.switchTab({
+        url: '/pages/products/list/index'
+      });
     });
   },
 
   goOrders() {
-    wx.navigateTo({
-      url: '/pages/orders/list/index'
+    this.runNavAction(() => {
+      wx.switchTab({
+        url: '/pages/orders/list/index'
+      });
     });
   },
 
   goMine() {
-    wx.navigateTo({
-      url: '/pages/mine/index'
-    });
-  },
-
-  logout() {
-    auth.clearSession();
-    wx.reLaunch({
-      url: '/pages/login/index'
+    this.runNavAction(() => {
+      wx.switchTab({
+        url: '/pages/mine/index'
+      });
     });
   },
 

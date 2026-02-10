@@ -1,11 +1,19 @@
 .actions {
   display: flex;
-  gap: 16rpx;
+  gap: 12rpx;
+  flex-wrap: wrap;
 }
 
 .action-btn {
-  flex: 1;
+  flex: 1 1 220rpx;
   margin: 0;
+}
+
+.alert-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .item {
@@ -14,8 +22,8 @@
 
 .tag {
   color: #16a34a;
-  border: 1rpx solid #86efac;
-  background: #f0fdf4;
+  border: 1rpx solid #bfe8ce;
+  background: #ecfdf3;
   border-radius: 999rpx;
   font-size: 22rpx;
   padding: 2rpx 12rpx;
@@ -31,11 +39,13 @@
 .mini-btn {
   margin: 0;
   font-size: 24rpx;
-  padding: 0 18rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 16rpx;
 }
 
 .danger {
-  color: #b91c1c;
+  color: #ef4444;
   border-color: #fecaca;
 }
 
@@ -64,10 +74,10 @@
   width: 100%;
   min-height: 78rpx;
   margin-top: 12rpx;
-  border: 1rpx solid #dbe2ea;
+  border: 1rpx solid #e6eef8;
   border-radius: 10rpx;
   padding: 14rpx;
-  background: #f8fafc;
+  background: #f6f9ff;
 }
 
 .switch-row {

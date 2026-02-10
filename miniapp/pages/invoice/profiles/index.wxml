@@ -1,0 +1,66 @@
+<view class="container safe-bottom has-fixed-action invoice-profiles-page page-shell">
+  <view class="section-strip">
+    <view class="row">
+      <view class="title">发票管理</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}" loading="{{loading && list.length > 0}}">刷新</button>
+    </view>
+    <view class="sub-title">维护开票模板，申请开票时可直接复用</view>
+  </view>
+
+  <view class="card" wx:if="{{loading && list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-illustration">⌛</view>
+      <view class="empty-title">模板加载中</view>
+      <view class="empty-desc">正在同步开票资料模板</view>
+      <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+    </view>
+  </view>
+
+  <view class="card" wx:elif="{{errorMessage && list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-illustration">!</view>
+      <view class="empty-title">模板加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="goCreate" disabled="{{loading || actionLoading}}">新增模板</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:elif="{{list.length === 0}}">
+    <view class="empty-state">
+      <view class="empty-illustration">票</view>
+      <view class="empty-title">暂无发票抬头</view>
+      <view class="empty-desc">建议先维护默认模板，开票时可直接复用</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="goCreate" disabled="{{loading || actionLoading}}">新增模板</button>
+        <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card list-card" wx:else>
+    <view class="card-plain item" wx:for="{{list}}" wx:key="id">
+      <view class="row">
+        <view class="value">{{item.title}}</view>
+        <view class="badge-ok" wx:if="{{item.isDefault}}">默认</view>
+      </view>
+      <view class="sub-title">税号：{{item.taxNo}}</view>
+      <view class="sub-title" wx:if="{{item.bankName}}">开户行：{{item.bankName}}</view>
+      <view class="sub-title" wx:if="{{item.bankAccount}}">银行账号：{{item.bankAccount}}</view>
+      <view class="sub-title" wx:if="{{item.addressPhone}}">地址电话：{{item.addressPhone}}</view>
+      <view class="sub-title" wx:if="{{item.email}}">邮箱：{{item.email}}</view>
+
+      <view class="ops">
+        <button class="btn-plain mini-btn" bindtap="goEdit" data-id="{{item.id}}" disabled="{{loading || actionLoading}}">编辑</button>
+        <button class="btn-plain mini-btn" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{!item.isDefault}}" disabled="{{loading || actionLoading}}">设默认</button>
+        <button class="btn-plain mini-btn danger" bindtap="removeProfile" data-id="{{item.id}}" disabled="{{loading || actionLoading}}">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="fixed-action-bar">
+    <button class="btn-primary fixed-action-btn" bindtap="goCreate" disabled="{{loading || actionLoading}}">新增发票抬头</button>
+  </view>
+</view>

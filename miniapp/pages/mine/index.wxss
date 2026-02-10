@@ -1,33 +1,260 @@
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12rpx;
+.mine-page {
+  min-height: 100vh;
+  background: #f1f1f1;
 }
 
-.stat {
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 12rpx;
-  padding: 18rpx;
+.mine-page.container {
+  padding: 0;
+}
+
+.mine-page.safe-bottom {
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.mine-page .card {
+  margin: 16rpx 20rpx;
+  border-radius: 22rpx;
+  border: 0;
+  box-shadow: none;
+}
+
+.mine-header {
+  margin-bottom: 16rpx;
+  padding: 24rpx 24rpx 28rpx;
+  min-height: 290rpx;
+  background: radial-gradient(circle at 8% 8%, #dbe7ff 0%, #f3f1ff 32%, #f9efe5 70%, #fffdf8 100%);
+}
+
+.header-icons {
+  display: flex;
+  gap: 16rpx;
+}
+
+.header-icon {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon-img {
+  width: 34rpx;
+  height: 34rpx;
+  display: block;
+}
+
+.header-action {
+  margin-left: auto;
+  margin-top: -62rpx;
+  width: 140rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.action-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #222;
+}
+
+.profile-row {
+  margin-top: 36rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.avatar-circle {
+  width: 102rpx;
+  height: 102rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 64rpx;
+  height: 64rpx;
+  display: block;
+}
+
+.profile-name {
+  color: #20232a;
+  font-size: 46rpx;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.profile-company {
+  margin-top: 8rpx;
+  color: #4c4f56;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.sync-tip {
+  margin: 0 20rpx 16rpx;
+  border-radius: 14rpx;
+  padding: 12rpx 18rpx;
+  background: #fff4f0;
+  color: #d65b37;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.empty-illustration-img {
+  width: 56rpx;
+  height: 56rpx;
+  display: block;
+}
+
+.notice-row {
+  margin: 0 20rpx 16rpx;
+  height: 84rpx;
+  border-radius: 18rpx;
+  background: #ffffff;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notice-text {
+  flex: 1;
+  color: #ff6a00;
+  font-size: 30rpx;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-card {
+  margin: 0 20rpx 16rpx;
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 16rpx 12rpx;
+}
+
+.card-title {
+  margin: 4rpx 8rpx 14rpx;
+  color: #858a92;
+  font-size: 24rpx;
+  line-height: 1.2;
+}
+
+.services-card {
+  padding-top: 24rpx;
+  padding-bottom: 24rpx;
+}
+
+.menu-grid {
+  display: grid;
+}
+
+.four-cols {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.three-cols {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.menu-item {
+  min-height: 128rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 8rpx 2rpx;
+}
+
+.menu-icon {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon-img {
+  width: 56rpx;
+  height: 56rpx;
+  display: block;
+}
+
+.menu-title {
+  color: #2e3238;
+  font-size: 25rpx;
+  line-height: 1.3;
   text-align: center;
 }
 
-.stat-num {
-  font-size: 34rpx;
+.metric-item {
+  gap: 12rpx;
+}
+
+.metric-value {
+  max-width: 100%;
+  color: #1f2329;
+  font-size: 32rpx;
   font-weight: 700;
-  color: #0f172a;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.stat-label {
-  margin-top: 4rpx;
-  color: #64748b;
-  font-size: 24rpx;
+.capability-item {
+  min-height: 138rpx;
 }
 
-.quick-actions button {
-  margin-bottom: 12rpx;
+.capability-ok,
+.capability-off {
+  max-width: 100%;
+  border-radius: 999rpx;
+  padding: 2rpx 12rpx;
+  font-size: 19rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.quick-actions button:last-child {
-  margin-bottom: 0;
+.capability-ok {
+  color: #0e9156;
+  background: #e8f8ef;
+}
+
+.capability-off {
+  color: #9a9090;
+  background: #f2f2f2;
+}
+
+.danger-item .menu-title {
+  color: #e54848;
+}
+
+.mine-footer {
+  margin: 4rpx 20rpx 0;
+  padding: 8rpx 0 14rpx;
+  text-align: center;
+}
+
+.footer-line {
+  color: #8f9196;
+  font-size: 22rpx;
+  line-height: 1.6;
 }

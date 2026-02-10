@@ -6,6 +6,17 @@ function withMiniPrefix(path) {
   return `${prefix}${path}`;
 }
 
+function loginWechat(payload) {
+  return request({
+    url: '/api/wechat/login',
+    method: 'POST',
+    needAuth: false,
+    data: payload,
+    showLoading: true,
+    loadingText: '微信登录中...'
+  });
+}
+
 function miniLogin(token) {
   return request({
     url: withMiniPrefix('/login'),
@@ -17,9 +28,9 @@ function miniLogin(token) {
   });
 }
 
-function getDeliveries() {
+function getMiniProfile() {
   return request({
-    url: withMiniPrefix('/deliveries'),
+    url: withMiniPrefix('/profile'),
     method: 'GET'
   });
 }
@@ -71,6 +82,47 @@ function removeCartItem(id) {
   });
 }
 
+function getAddresses() {
+  return request({
+    url: withMiniPrefix('/addresses'),
+    method: 'GET'
+  });
+}
+
+function upsertAddress(payload) {
+  return request({
+    url: withMiniPrefix('/addresses/upsert'),
+    method: 'POST',
+    data: payload,
+    showLoading: true,
+    loadingText: '保存地址中...'
+  });
+}
+
+function removeAddress(id) {
+  return request({
+    url: withMiniPrefix(`/addresses/${id}`),
+    method: 'DELETE'
+  });
+}
+
+function createQuoteRequest(payload) {
+  return request({
+    url: withMiniPrefix('/quote-requests'),
+    method: 'POST',
+    data: payload,
+    showLoading: true,
+    loadingText: '提交报价申请中...'
+  });
+}
+
+function getQuoteRequests() {
+  return request({
+    url: withMiniPrefix('/quote-requests'),
+    method: 'GET'
+  });
+}
+
 function createOrder(payload, idempotencyKey) {
   const headers = {};
   if (idempotencyKey) {
@@ -109,6 +161,54 @@ function cancelOrder(id, payload = {}) {
     data: payload,
     showLoading: true,
     loadingText: '取消中...'
+  });
+}
+
+function getInvoiceProfiles() {
+  return request({
+    url: withMiniPrefix('/invoice/profiles'),
+    method: 'GET'
+  });
+}
+
+function upsertInvoiceProfile(payload) {
+  return request({
+    url: withMiniPrefix('/invoice/profiles/upsert'),
+    method: 'POST',
+    data: payload,
+    showLoading: true,
+    loadingText: '保存开票资料中...'
+  });
+}
+
+function removeInvoiceProfile(id) {
+  return request({
+    url: withMiniPrefix(`/invoice/profiles/${id}`),
+    method: 'DELETE'
+  });
+}
+
+function getInvoiceRequests() {
+  return request({
+    url: withMiniPrefix('/invoice/requests'),
+    method: 'GET'
+  });
+}
+
+function createInvoiceRequest(payload) {
+  return request({
+    url: withMiniPrefix('/invoice/requests'),
+    method: 'POST',
+    data: payload,
+    showLoading: true,
+    loadingText: '提交开票申请中...'
+  });
+}
+
+function getDeliveries() {
+  return request({
+    url: withMiniPrefix('/deliveries'),
+    method: 'GET'
   });
 }
 
@@ -163,17 +263,29 @@ function confirmStatement(id, payload) {
 }
 
 module.exports = {
+  loginWechat,
   miniLogin,
+  getMiniProfile,
   getProducts,
   getProductDetail,
   getCart,
   addCartItem,
   updateCartItem,
   removeCartItem,
+  getAddresses,
+  upsertAddress,
+  removeAddress,
+  createQuoteRequest,
+  getQuoteRequests,
   createOrder,
   getOrders,
   getOrderDetail,
   cancelOrder,
+  getInvoiceProfiles,
+  upsertInvoiceProfile,
+  removeInvoiceProfile,
+  getInvoiceRequests,
+  createInvoiceRequest,
   getDeliveries,
   getDeliveryDetail,
   signDelivery,

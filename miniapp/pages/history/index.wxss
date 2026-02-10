@@ -1,5 +1,24 @@
+.top-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
 .top-actions button {
   margin: 0;
+  flex: 1;
+}
+
+.mini-btn {
+  height: 56rpx;
+  line-height: 56rpx;
+  font-size: 22rpx;
+}
+
+.alert-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .item {
@@ -8,7 +27,7 @@
 
 .time {
   font-size: 22rpx;
-  color: #94a3b8;
+  color: #8a97a6;
 }
 
 .small-btn {

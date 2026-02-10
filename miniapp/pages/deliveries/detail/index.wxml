@@ -1,15 +1,51 @@
 <view class="container">
-  <block wx:if="{{loading}}">
-    <view class="empty">加载中...</view>
+  <block wx:if="{{loading && !detail}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">单据加载中</view>
+        <view class="empty-desc">正在同步签收明细与状态</view>
+        <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{errorMessage && !detail}}">
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">单据加载失败</view>
+        <view class="empty-desc">{{errorMessage}}</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+          <button class="btn-plain cta-btn" bindtap="goDeliveries" disabled="{{loading || actionLoading}}">返回列表</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:elif="{{!detail}}">
-    <view class="empty">未找到单据</view>
+    <view class="card">
+      <view class="empty-state">
+        <view class="empty-title">未找到单据</view>
+        <view class="empty-desc">可能已处理完成或单据不存在</view>
+        <view class="cta-row">
+          <button class="btn-primary cta-btn" bindtap="goDeliveries" disabled="{{actionLoading}}">返回列表</button>
+          <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+        </view>
+      </view>
+    </view>
   </block>
 
   <block wx:else>
+    <view class="card alert-card" wx:if="{{errorMessage}}">
+      <view class="sub-title">最近一次刷新失败：{{errorMessage}}</view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+    </view>
+
     <view class="card">
-      <view class="title">单据信息</view>
+      <view class="row section-head">
+        <view class="title">单据信息</view>
+        <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新</button>
+      </view>
       <view class="row">
         <text class="label">单据号</text>
         <text class="value">{{detail.kingdeeBillNumber || detail.kingdee_doc_no || '-'}}</text>
@@ -31,7 +67,14 @@
     <view class="card">
       <view class="title">商品明细</view>
       <block wx:if="{{items.length === 0}}">
-        <view class="sub-title">暂无明细</view>
+        <view class="empty-state lines-empty">
+          <view class="empty-title">暂无明细</view>
+          <view class="empty-desc">可刷新重试，或返回列表查看其他单据</view>
+          <view class="cta-row">
+            <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || actionLoading}}">刷新重试</button>
+            <button class="btn-plain cta-btn" bindtap="goDeliveries" disabled="{{loading || actionLoading}}">返回列表</button>
+          </view>
+        </view>
       </block>
       <block wx:else>
         <view class="line" wx:for="{{items}}" wx:key="index">
@@ -61,6 +104,8 @@
       wx:if="{{detail.status !== 'SIGNED'}}"
       class="btn-primary"
       bindtap="goSign"
+      loading="{{actionLoading}}"
+      disabled="{{actionLoading}}"
     >
       去签收
     </button>
@@ -68,6 +113,7 @@
       wx:if="{{detail.orderId || detail.salesOrderId || detail.sales_order_id}}"
       class="btn-plain"
       bindtap="goOrderDetail"
+      disabled="{{actionLoading}}"
     >
       查看关联订单
     </button>

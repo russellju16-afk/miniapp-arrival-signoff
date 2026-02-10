@@ -18,7 +18,7 @@ for key in "${required[@]}"; do
 done
 
 export KD_MOCK_MODE=false
-export DB_URL="${DB_URL:-file:./prisma/core/dev.db}"
+export DB_URL="${DB_URL:-file:./prisma/core/smoke.db}"
 export ADMIN_TOKEN="${ADMIN_TOKEN:-dev-admin-token}"
 
 echo "[smoke-mall-live] KD_MOCK_MODE=${KD_MOCK_MODE}"

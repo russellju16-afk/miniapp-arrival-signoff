@@ -1,14 +1,13 @@
+const api = require('../../services/api');
 const auth = require('../../utils/auth');
-const mall = require('../../utils/mall');
 
 const EMPTY_FORM = {
-  receiver: '',
-  phone: '',
+  receiverName: '',
+  receiverPhone: '',
   province: '',
   city: '',
   district: '',
   detail: '',
-  tag: '家',
   isDefault: false
 };
 
@@ -16,6 +15,10 @@ Page({
   data: {
     selectMode: false,
     list: [],
+    loading: false,
+    errorMessage: '',
+    actionLoading: false,
+    submitting: false,
     showForm: false,
     editingId: '',
     form: { ...EMPTY_FORM }
@@ -34,12 +37,25 @@ Page({
     this.loadList();
   },
 
-  loadList() {
-    const list = mall.ensureAddressSeed();
-    this.setData({ list });
+  async loadList() {
+    try {
+      this.setData({ loading: true, errorMessage: '' });
+      const res = await api.getAddresses();
+      const list = Array.isArray(res.data) ? res.data : [];
+      this.setData({ list });
+    } catch (err) {
+      const errorMessage = (err && err.message) || '加载地址失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   openCreate() {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     this.setData({
       showForm: true,
       editingId: '',
@@ -51,6 +67,9 @@ Page({
   },
 
   openEdit(e) {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
     const target = this.data.list.find((item) => item.id === id);
     if (!target) {
@@ -61,13 +80,12 @@ Page({
       showForm: true,
       editingId: target.id,
       form: {
-        receiver: target.receiver || '',
-        phone: target.phone || '',
+        receiverName: target.receiverName || '',
+        receiverPhone: target.receiverPhone || '',
         province: target.province || '',
         city: target.city || '',
         district: target.district || '',
         detail: target.detail || '',
-        tag: target.tag || '',
         isDefault: Boolean(target.isDefault)
       }
     });
@@ -78,24 +96,22 @@ Page({
     if (!field) {
       return;
     }
-
-    this.setData({
-      [`form.${field}`]: String(e.detail.value || '')
-    });
+    this.setData({ [`form.${field}`]: String(e.detail.value || '') });
   },
 
   onDefaultSwitch(e) {
-    this.setData({
-      'form.isDefault': Boolean(e.detail.value)
-    });
+    this.setData({ 'form.isDefault': Boolean(e.detail.value) });
   },
 
   chooseWechatAddress() {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     wx.chooseAddress({
       success: (res) => {
         this.setData({
-          'form.receiver': res.userName || '',
-          'form.phone': res.telNumber || '',
+          'form.receiverName': res.userName || '',
+          'form.receiverPhone': res.telNumber || '',
           'form.province': res.provinceName || '',
           'form.city': res.cityName || '',
           'form.district': res.countyName || '',
@@ -108,51 +124,53 @@ Page({
     });
   },
 
-  submitForm() {
+  async submitForm() {
+    if (this.data.submitting) {
+      return;
+    }
     const form = this.data.form || {};
-    const receiver = String(form.receiver || '').trim();
-    const phone = String(form.phone || '').trim();
+    const receiverName = String(form.receiverName || '').trim();
+    const receiverPhone = String(form.receiverPhone || '').trim();
     const province = String(form.province || '').trim();
     const city = String(form.city || '').trim();
     const district = String(form.district || '').trim();
     const detail = String(form.detail || '').trim();
 
-    if (!receiver) {
-      wx.showToast({ title: '请填写收货人', icon: 'none' });
-      return;
-    }
-    if (!/^1\d{10}$/.test(phone)) {
-      wx.showToast({ title: '请填写正确手机号', icon: 'none' });
-      return;
-    }
-    if (!province || !city || !district || !detail) {
-      wx.showToast({ title: '请填写完整地址', icon: 'none' });
+    if (!receiverName || !receiverPhone || !province || !city || !district || !detail) {
+      wx.showToast({ title: '请填写完整地址信息', icon: 'none' });
       return;
     }
 
-    mall.upsertAddress({
-      id: this.data.editingId || undefined,
-      receiver,
-      phone,
-      province,
-      city,
-      district,
-      detail,
-      tag: String(form.tag || '').trim() || '常用',
-      isDefault: Boolean(form.isDefault)
-    });
-
-    this.setData({
-      showForm: false,
-      editingId: '',
-      form: { ...EMPTY_FORM }
-    });
-
-    this.loadList();
-    wx.showToast({ title: '地址已保存', icon: 'success' });
+    try {
+      this.setData({ submitting: true });
+      await api.upsertAddress({
+        id: this.data.editingId || undefined,
+        receiverName,
+        receiverPhone,
+        province,
+        city,
+        district,
+        detail,
+        isDefault: Boolean(form.isDefault)
+      });
+      this.setData({
+        showForm: false,
+        editingId: '',
+        form: { ...EMPTY_FORM }
+      });
+      await this.loadList();
+      wx.showToast({ title: '地址已保存', icon: 'success' });
+    } catch (err) {
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' });
+    } finally {
+      this.setData({ submitting: false });
+    }
   },
 
   cancelForm() {
+    if (this.data.submitting) {
+      return;
+    }
     this.setData({
       showForm: false,
       editingId: '',
@@ -161,6 +179,9 @@ Page({
   },
 
   removeAddress(e) {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
     if (!id) {
       return;
@@ -169,42 +190,74 @@ Page({
     wx.showModal({
       title: '删除地址',
       content: '确认删除这个地址吗？',
-      success: (res) => {
+      success: async (res) => {
         if (!res.confirm) {
           return;
         }
-        mall.removeAddress(id);
-        this.loadList();
+        try {
+          this.setData({ actionLoading: true });
+          await api.removeAddress(id);
+          await this.loadList();
+        } catch (err) {
+          wx.showToast({ title: err.message || '删除失败', icon: 'none' });
+        } finally {
+          this.setData({ actionLoading: false });
+        }
       }
     });
   },
 
-  setDefault(e) {
+  async setDefault(e) {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
-    if (!id) {
+    const target = this.data.list.find((item) => item.id === id);
+    if (!target) {
       return;
     }
 
-    mall.setDefaultAddress(id);
-    this.loadList();
-    wx.showToast({ title: '已设为默认地址', icon: 'none' });
+    try {
+      this.setData({ actionLoading: true });
+      await api.upsertAddress({
+        id: target.id,
+        receiverName: target.receiverName,
+        receiverPhone: target.receiverPhone,
+        province: target.province,
+        city: target.city,
+        district: target.district,
+        detail: target.detail,
+        isDefault: true
+      });
+      await this.loadList();
+      wx.showToast({ title: '已设为默认地址', icon: 'none' });
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' });
+    } finally {
+      this.setData({ actionLoading: false });
+    }
   },
 
-  selectAddress(e) {
+  async selectAddress(e) {
+    if (this.data.actionLoading || this.data.submitting) {
+      return;
+    }
     const id = e.currentTarget.dataset.id;
-    if (!id) {
+    if (!this.data.selectMode || !id) {
       return;
     }
 
-    if (!this.data.selectMode) {
-      return;
-    }
-
-    mall.setDefaultAddress(id);
-    wx.showToast({ title: '已选中地址', icon: 'success' });
+    await this.setDefault(e);
     setTimeout(() => {
       wx.navigateBack({ delta: 1 });
-    }, 250);
+    }, 240);
+  },
+
+  refreshList() {
+    if (this.data.loading) {
+      return;
+    }
+    this.loadList();
   },
 
   ensureLogin() {

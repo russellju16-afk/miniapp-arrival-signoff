@@ -6,6 +6,9 @@ const { fileToBase64DataUrl, detectMimeFromPath } = require('../../../utils/file
 Page({
   data: {
     id: '',
+    loading: false,
+    errorMessage: '',
+    actionLoading: false,
     delivery: null,
     signerName: '',
     remark: '',
@@ -42,11 +45,14 @@ Page({
   async fetchDelivery() {
     const id = this.data.id;
     if (!id) {
+      const errorMessage = '参数缺失，无法加载签收单';
+      this.setData({ errorMessage });
       wx.showToast({ title: '参数缺失', icon: 'none' });
       return;
     }
 
     try {
+      this.setData({ loading: true, errorMessage: '' });
       const res = await api.getDeliveryDetail(id);
       const detail = res.data || null;
       this.setData({
@@ -58,7 +64,11 @@ Page({
           : null
       });
     } catch (err) {
-      wx.showToast({ title: err.message || '加载详情失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '加载详情失败，请稍后重试';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
     }
   },
 
@@ -87,7 +97,7 @@ Page({
     this.ctx = wx.createCanvasContext('signCanvas', this);
     this.ctx.setFillStyle('#ffffff');
     this.ctx.fillRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
-    this.ctx.setStrokeStyle('#111827');
+    this.ctx.setStrokeStyle('#0b1f3a');
     this.ctx.setLineWidth(3);
     this.ctx.setLineCap('round');
     this.ctx.setLineJoin('round');
@@ -139,10 +149,16 @@ Page({
   },
 
   clearSignature() {
+    if (this.data.submitting) {
+      return;
+    }
     this.initCanvas();
   },
 
   choosePhotos() {
+    if (this.data.submitting) {
+      return;
+    }
     const remain = 3 - this.data.photos.length;
     if (remain <= 0) {
       wx.showToast({ title: '最多 3 张', icon: 'none' });
@@ -162,6 +178,9 @@ Page({
   },
 
   removePhoto(e) {
+    if (this.data.submitting) {
+      return;
+    }
     const index = Number(e.currentTarget.dataset.index);
     if (Number.isNaN(index)) {
       return;
@@ -267,6 +286,26 @@ Page({
       x: touch.x,
       y: touch.y
     };
+  },
+
+  refreshData() {
+    if (this.data.loading) {
+      return;
+    }
+    this.fetchDelivery();
+  },
+
+  goDetail() {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
+    wx.redirectTo({
+      url: `/pages/deliveries/detail/index?id=${this.data.id}`
+    });
+    setTimeout(() => {
+      this.setData({ actionLoading: false });
+    }, 320);
   },
 
   ensureLogin() {

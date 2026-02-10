@@ -1,159 +1,121 @@
-const auth = require('../../../utils/auth');
-const config = require('../../../config');
-const mall = require('../../../utils/mall');
+const api = require('../../services/api');
+const auth = require('../../utils/auth');
+const config = require('../../config');
+const ACTION_ROUTE_MAP = {
+  quote: { url: '/pages/cart/index', isTab: true },
+  statements: { url: '/pages/statements/list/index', isTab: false },
+  invoiceRequest: { url: '/pages/invoice/request/index', isTab: false },
+  address: { url: '/pages/address/index', isTab: false },
+  invoiceProfiles: { url: '/pages/invoice/profiles/index', isTab: false },
+  feedback: { url: '/pages/feedback/index', isTab: false }
+};
 
 Page({
   data: {
-    customer: null,
-    token: '',
-    tokenMasked: '-',
+    profile: null,
+    capabilities: null,
     version: config.APP_VERSION || 'M4',
-    privacyPolicyUrl: config.PRIVACY_POLICY_URL || '',
-    userAgreementUrl: config.USER_AGREEMENT_URL || '',
-    customerServicePhone: config.CUSTOMER_SERVICE_PHONE || '',
-    favoritesCount: 0,
-    historyCount: 0,
-    couponCount: 0,
-    addressCount: 0
+    loading: false,
+    actionLoading: false,
+    logoutSubmitting: false,
+    errorMessage: ''
   },
 
   onShow() {
-    const session = auth.getSession();
-    if (!session || !session.token) {
+    if (!auth.getToken()) {
       wx.reLaunch({ url: '/pages/login/index' });
       return;
     }
-
-    const coupons = mall.getCoupons();
-    const now = Date.now();
-    const couponCount = coupons.filter((item) => {
-      if (item.status !== 'AVAILABLE') {
-        return false;
-      }
-      const expireTs = new Date(item.expireAt).getTime();
-      return !Number.isFinite(expireTs) || expireTs > now;
-    }).length;
-
-    this.setData({
-      token: session.token,
-      tokenMasked: this.maskToken(session.token),
-      customer: session.customer || null,
-      favoritesCount: mall.getFavorites().length,
-      historyCount: mall.getHistory(500).length,
-      couponCount,
-      addressCount: mall.getAddresses().length
-    });
+    this.loadProfile();
   },
 
-  goProducts() {
-    wx.navigateTo({ url: '/pages/products/list/index' });
+  async loadProfile() {
+    try {
+      this.setData({ loading: true, errorMessage: '' });
+      const res = await api.getMiniProfile();
+      const profile = res.data || null;
+      auth.setSession({
+        customerProfile: profile,
+        customer: profile
+      });
+      this.setData({
+        profile,
+        capabilities: profile ? profile.capabilities : null
+      });
+    } catch (err) {
+      const errorMessage = (err && err.message) || '加载失败';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
-  goCart() {
-    wx.navigateTo({ url: '/pages/cart/index' });
-  },
-
-  goOrders() {
-    wx.navigateTo({ url: '/pages/orders/list/index' });
-  },
-
-  goDeliveries() {
-    wx.navigateTo({ url: '/pages/deliveries/list/index' });
-  },
-
-  goStatements() {
-    wx.navigateTo({ url: '/pages/statements/list/index' });
-  },
-
-  goFavorites() {
-    wx.navigateTo({ url: '/pages/favorites/index' });
-  },
-
-  goHistory() {
-    wx.navigateTo({ url: '/pages/history/index' });
-  },
-
-  goAddress() {
-    wx.navigateTo({ url: '/pages/address/index' });
-  },
-
-  goCoupons() {
-    wx.navigateTo({ url: '/pages/coupons/index' });
-  },
-
-  openPrivacyPolicy() {
-    this.openLinkOrCopy(this.data.privacyPolicyUrl, '隐私政策');
-  },
-
-  openUserAgreement() {
-    this.openLinkOrCopy(this.data.userAgreementUrl, '用户协议');
-  },
-
-  callCustomerService() {
-    const phone = String(this.data.customerServicePhone || '').trim();
-    if (!phone) {
-      wx.showToast({ title: '未配置客服联系方式', icon: 'none' });
+  refreshData() {
+    if (this.data.loading) {
       return;
     }
-
-    wx.makePhoneCall({
-      phoneNumber: phone,
-      fail: () => {
-        wx.setClipboardData({
-          data: phone,
-          success: () => wx.showToast({ title: '已复制客服电话', icon: 'success' })
-        });
-      }
-    });
+    this.loadProfile();
   },
 
-  copyTokenTail() {
-    wx.setClipboardData({
-      data: this.data.tokenMasked,
-      success: () => wx.showToast({ title: '已复制脱敏 token', icon: 'success' })
+  runAction(handler) {
+    if (this.data.actionLoading) {
+      return;
+    }
+    this.setData({ actionLoading: true });
+    try {
+      handler();
+    } finally {
+      setTimeout(() => {
+        this.setData({ actionLoading: false });
+      }, 320);
+    }
+  },
+
+  handleMenuTap(event) {
+    const { action } = event.currentTarget.dataset || {};
+    if (!action) {
+      return;
+    }
+    if (action === 'logout') {
+      this.logout();
+      return;
+    }
+    const actionConfig = ACTION_ROUTE_MAP[action];
+    if (!actionConfig || !actionConfig.url) {
+      wx.showToast({ title: '功能暂未开放', icon: 'none' });
+      return;
+    }
+    this.navigateByAction(actionConfig.url, !!actionConfig.isTab);
+  },
+
+  navigateByAction(targetUrl, isTab) {
+    this.runAction(() => {
+      const method = isTab ? 'switchTab' : 'navigateTo';
+      wx[method]({
+        url: targetUrl,
+        fail: () => {
+          wx.showToast({ title: '页面打开失败', icon: 'none' });
+        }
+      });
     });
   },
 
   logout() {
+    if (this.data.logoutSubmitting || this.data.actionLoading) {
+      return;
+    }
     wx.showModal({
       title: '退出登录',
-      content: '确认清除当前会话并返回登录页？',
+      content: '确认退出当前账号？',
       success: (res) => {
         if (!res.confirm) {
           return;
         }
+        this.setData({ logoutSubmitting: true });
         auth.clearSession();
         wx.reLaunch({ url: '/pages/login/index' });
       }
     });
-  },
-
-  openLinkOrCopy(url, name) {
-    const value = String(url || '').trim();
-    if (!value) {
-      wx.showToast({ title: `${name}链接未配置`, icon: 'none' });
-      return;
-    }
-
-    wx.setClipboardData({
-      data: value,
-      success: () => {
-        wx.showModal({
-          title: name,
-          content: `已复制 ${name} 链接，可粘贴到浏览器查看。`,
-          showCancel: false
-        });
-      }
-    });
-  },
-
-  maskToken(token) {
-    if (!token) {
-      return '-';
-    }
-    if (token.length <= 12) {
-      return `${token.slice(0, 2)}****${token.slice(-2)}`;
-    }
-    return `${token.slice(0, 4)}****${token.slice(-4)}`;
   }
 });

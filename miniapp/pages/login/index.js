@@ -1,187 +1,239 @@
 const api = require('../../services/api');
 const auth = require('../../utils/auth');
 
+let profilePollingTimer = null;
+
 Page({
   data: {
-    token: '',
+    redirect: '/pages/home/index',
+    step: 'AUTH',
     loading: false,
-    redirect: '/pages/products/list/index',
-    tokenError: '',
-    clipboardToken: '',
-    showClipboardTip: false
+    actionLoading: false,
+    submitting: false,
+    checking: false,
+    errorMessage: '',
+    loginCode: '',
+    mockOpenid: '',
+    profile: null,
+    form: {
+      companyName: '',
+      contactName: '',
+      contactPhone: '',
+      remark: ''
+    }
   },
 
   onLoad(options) {
-    const redirect = options.redirect ? decodeURIComponent(options.redirect) : '/pages/products/list/index';
-    const tokenFromQuery = this.extractTokenFromOptions(options);
-
-    this.setData({
-      redirect,
-      token: tokenFromQuery || ''
-    });
-
-    if (tokenFromQuery) {
-      this.onSubmit();
-      return;
-    }
+    const redirect = options.redirect ? decodeURIComponent(options.redirect) : '/pages/home/index';
+    this.setData({ redirect });
 
     const session = auth.getSession();
-    if (session && session.token) {
-      wx.reLaunch({ url: redirect });
-      return;
-    }
-
-    this.detectClipboardToken();
-  },
-
-  onTokenInput(e) {
-    const token = String(e.detail.value || '').trim();
-    this.setData({
-      token,
-      tokenError: token ? '' : this.data.tokenError
-    });
-  },
-
-  onTokenConfirm() {
-    this.onSubmit();
-  },
-
-  onClearToken() {
-    this.setData({
-      token: '',
-      tokenError: ''
-    });
-  },
-
-  onUseClipboardToken() {
-    const token = this.data.clipboardToken;
-    if (!token) {
-      return;
-    }
-
-    this.setData({
-      token,
-      tokenError: '',
-      showClipboardTip: false
-    });
-  },
-
-  async onSubmit() {
-    const token = this.data.token.trim();
-    const tokenError = this.validateToken(token);
-    if (tokenError) {
-      this.setData({ tokenError });
-      wx.showToast({ title: tokenError, icon: 'none' });
-      return;
-    }
-
-    try {
-      this.setData({ loading: true, tokenError: '' });
-      const res = await api.miniLogin(token);
-      const customer = res.data || {};
-
-      auth.setSession({
-        token,
-        customerId: customer.id,
-        customer
+    if (session && auth.getToken()) {
+      this.setData({
+        step: this.isProfileActive(session.customerProfile || session.customer) ? 'AUTH' : 'PENDING',
+        profile: session.customerProfile || session.customer || null
       });
+      this.refreshProfileAndRoute();
+    }
+  },
 
-      wx.showToast({ title: '登录成功', icon: 'success' });
-      wx.reLaunch({ url: this.data.redirect || '/pages/products/list/index' });
+  onUnload() {
+    this.clearProfilePolling();
+  },
+
+  onHide() {
+    this.clearProfilePolling();
+  },
+
+  onFormInput(e) {
+    const field = e.currentTarget.dataset.field;
+    if (!field) {
+      return;
+    }
+    this.setData({
+      [`form.${field}`]: String(e.detail.value || '')
+    });
+  },
+
+  onMockOpenidInput(e) {
+    this.setData({
+      mockOpenid: String(e.detail.value || '').trim()
+    });
+  },
+
+  async authorizeWechat() {
+    try {
+      this.setData({ loading: true, errorMessage: '' });
+      const code = await this.getWxLoginCode();
+      this.setData({
+        loginCode: code,
+        step: 'FORM'
+      });
     } catch (err) {
-      wx.showToast({ title: err.message || '登录失败', icon: 'none' });
+      const errorMessage = (err && err.message) || '微信授权失败';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  onScanToken() {
-    wx.scanCode({
-      onlyFromCamera: false,
-      success: (res) => {
-        const token = this.extractTokenFromString(res.result || '');
-        if (!token) {
-          wx.showToast({ title: '未识别到 token', icon: 'none' });
-          return;
-        }
-        this.setData({ token, tokenError: '' });
-        this.onSubmit();
-      },
-      fail: () => {
-        wx.showToast({ title: '扫码取消或失败', icon: 'none' });
+  async submitRegistration() {
+    if (this.data.submitting) {
+      return;
+    }
+
+    const form = this.data.form || {};
+    const contactPhone = String(form.contactPhone || '').trim();
+    if (!String(form.companyName || '').trim()) {
+      wx.showToast({ title: '请输入公司名称', icon: 'none' });
+      return;
+    }
+    if (!String(form.contactName || '').trim()) {
+      wx.showToast({ title: '请输入联系人', icon: 'none' });
+      return;
+    }
+    if (!/^1\d{10}$/.test(contactPhone)) {
+      wx.showToast({ title: '请输入正确手机号', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ submitting: true, errorMessage: '' });
+      const payload = {
+        registration: {
+          companyName: String(form.companyName || '').trim(),
+          contactName: String(form.contactName || '').trim(),
+          contactPhone,
+          remark: String(form.remark || '').trim() || undefined
+        },
+        customerName: String(form.companyName || '').trim()
+      };
+
+      if (this.data.loginCode) {
+        payload.code = this.data.loginCode;
       }
+      if (this.data.mockOpenid) {
+        payload.mockOpenid = this.data.mockOpenid;
+      }
+
+      const res = await api.loginWechat(payload);
+      const data = res.data || {};
+      this.saveSession(data);
+
+      if (this.isProfileActive(data.customerProfile)) {
+        wx.showToast({ title: '登录成功', icon: 'success' });
+        wx.reLaunch({ url: this.data.redirect || '/pages/home/index' });
+        return;
+      }
+
+      this.setData({
+        step: 'PENDING',
+        profile: data.customerProfile || null
+      });
+      this.startProfilePolling();
+      wx.showToast({ title: '已提交，等待审核', icon: 'none' });
+    } catch (err) {
+      const errorMessage = (err && err.message) || '提交失败';
+      this.setData({ errorMessage });
+      wx.showToast({ title: errorMessage, icon: 'none' });
+    } finally {
+      this.setData({ submitting: false });
+    }
+  },
+
+  async refreshProfileAndRoute() {
+    try {
+      this.setData({ checking: true, errorMessage: '' });
+      const res = await api.getMiniProfile();
+      const profile = res.data || null;
+      const session = auth.getSession() || {};
+      auth.setSession({
+        ...session,
+        customerProfile: profile,
+        customer: profile
+      });
+
+      if (this.isProfileActive(profile)) {
+        wx.reLaunch({ url: this.data.redirect || '/pages/home/index' });
+        return;
+      }
+
+      this.setData({
+        step: 'PENDING',
+        profile
+      });
+      this.startProfilePolling();
+    } catch (err) {
+      const errorMessage = (err && err.message) || '状态刷新失败，请重新登录';
+      this.setData({ errorMessage });
+      auth.clearSession();
+      this.setData({ step: 'AUTH', profile: null });
+    } finally {
+      this.setData({ checking: false });
+    }
+  },
+
+  onTapRecheck() {
+    this.refreshProfileAndRoute();
+  },
+
+  onBackToAuth() {
+    this.clearProfilePolling();
+    auth.clearSession();
+    this.setData({
+      step: 'AUTH',
+      profile: null,
+      loginCode: '',
+      errorMessage: ''
     });
   },
 
-  detectClipboardToken() {
-    wx.getClipboardData({
-      success: (res) => {
-        const token = this.extractTokenFromString((res && res.data) || '');
-        if (!token || token === this.data.token) {
-          return;
-        }
+  startProfilePolling() {
+    this.clearProfilePolling();
+    profilePollingTimer = setInterval(() => {
+      this.refreshProfileAndRoute();
+    }, 10000);
+  },
 
-        const err = this.validateToken(token);
-        if (err) {
-          return;
-        }
+  clearProfilePolling() {
+    if (profilePollingTimer) {
+      clearInterval(profilePollingTimer);
+      profilePollingTimer = null;
+    }
+  },
 
-        this.setData({
-          clipboardToken: token,
-          showClipboardTip: true
-        });
-      }
+  saveSession(loginData) {
+    const accessToken = loginData.accessToken || '';
+    const customerProfile = loginData.customerProfile || null;
+    auth.setSession({
+      accessToken,
+      token: accessToken,
+      tokenExpiresAt: loginData.tokenExpiresAt || null,
+      customerId: customerProfile ? customerProfile.id : '',
+      customerProfile,
+      customer: customerProfile
     });
   },
 
-  validateToken(token) {
-    if (!token) {
-      return '请输入 token';
-    }
-    if (token.length < 6) {
-      return 'token 长度不合法';
-    }
-    return '';
+  isProfileActive(profile) {
+    return profile && profile.status === 'ACTIVE';
   },
 
-  extractTokenFromOptions(options) {
-    if (options.token) {
-      return String(options.token).trim();
-    }
-
-    if (options.scene) {
-      try {
-        const scene = decodeURIComponent(options.scene);
-        return this.extractTokenFromString(scene);
-      } catch (err) {
-        return '';
-      }
-    }
-
-    return '';
-  },
-
-  extractTokenFromString(raw) {
-    const text = String(raw || '').trim();
-    if (!text) {
-      return '';
-    }
-
-    if (text.includes('token=')) {
-      const tokenMatch = text.match(/[?&]token=([^&#]+)/i);
-      if (tokenMatch && tokenMatch[1]) {
-        try {
-          return decodeURIComponent(tokenMatch[1]);
-        } catch (err) {
-          return tokenMatch[1];
+  getWxLoginCode() {
+    return new Promise((resolve, reject) => {
+      wx.login({
+        success: (res) => {
+          if (res && res.code) {
+            resolve(res.code);
+            return;
+          }
+          reject(new Error('未拿到微信授权 code'));
+        },
+        fail: (err) => {
+          reject(new Error((err && err.errMsg) || '微信授权失败'));
         }
-      }
-    }
-
-    if (text.includes('token:')) {
-      return text.split('token:')[1].trim();
-    }
-
-    return text;
+      });
+    });
   }
 });

@@ -48,7 +48,7 @@ function request(options) {
         if (statusCode === 401) {
           auth.clearSession();
           redirectToLogin();
-          reject(new Error(body.message || '登录状态失效'));
+          reject(buildHttpError(statusCode, body, body.message || '登录状态失效'));
           return;
         }
 
@@ -57,10 +57,10 @@ function request(options) {
           return;
         }
 
-        reject(new Error(body.message || `请求失败(${statusCode})`));
+        reject(buildHttpError(statusCode, body));
       },
       fail: (err) => {
-        reject(new Error(err.errMsg || '网络请求失败'));
+        reject(buildHttpError(0, {}, err.errMsg || '网络请求失败'));
       },
       complete: () => {
         if (showLoading) {
@@ -79,6 +79,45 @@ function redirectToLogin() {
   wx.reLaunch({
     url: `/pages/login/index?redirect=${redirect}`
   });
+}
+
+function buildHttpError(statusCode, body, fallbackMessage) {
+  const safeBody = toObject(body);
+  const bodyMessage = pickBodyMessage(safeBody);
+  const statusMessage =
+    statusCode === 530
+      ? '请求失败(530)：接口地址不可用，请检查 miniapp/config.js 的 API_BASE_URL（临时隧道可能已失效）'
+      : `请求失败(${statusCode})`;
+
+  const err = new Error(
+    fallbackMessage ||
+      bodyMessage ||
+      statusMessage
+  );
+  err.statusCode = statusCode;
+  err.code = safeBody.code || safeBody.errcode || '';
+  err.requestId = safeBody.requestId || '';
+  err.details = safeBody.details || null;
+  err.raw = body;
+  return err;
+}
+
+function pickBodyMessage(body) {
+  const candidates = [body.message, body.msg, body.error];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const message = candidates[i];
+    if (typeof message === 'string' && message.trim()) {
+      return message.trim();
+    }
+  }
+  return '';
+}
+
+function toObject(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  return {};
 }
 
 module.exports = {

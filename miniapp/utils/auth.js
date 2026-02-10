@@ -5,7 +5,11 @@ function getSession() {
 }
 
 function setSession(session) {
-  wx.setStorageSync(SESSION_KEY, session);
+  const previous = getSession() || {};
+  wx.setStorageSync(SESSION_KEY, {
+    ...previous,
+    ...(session || {})
+  });
 }
 
 function clearSession() {
@@ -14,12 +18,18 @@ function clearSession() {
 
 function getToken() {
   const session = getSession();
-  return session && session.token ? session.token : '';
+  if (!session) {
+    return '';
+  }
+  return session.accessToken || session.token || '';
 }
 
 function getCustomerId() {
   const session = getSession();
-  return session && session.customerId ? session.customerId : '';
+  if (!session) {
+    return '';
+  }
+  return session.customerId || (session.customer && session.customer.id) || '';
 }
 
 function isLoggedIn() {

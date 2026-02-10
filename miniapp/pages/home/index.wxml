@@ -1,0 +1,146 @@
+<view class="container safe-bottom home-page page-shell">
+  <view class="card product-section" wx:if="{{errorMessage}}">
+    <view class="empty-state">
+      <view class="empty-title">首页数据加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="goProducts" disabled="{{actionLoading}}">去商品页</button>
+      </view>
+    </view>
+  </view>
+
+  <block wx:for="{{layoutSections}}" wx:key="key">
+    <block wx:if="{{item.enabled && item.key === 'banners'}}">
+      <view class="card banner-card">
+        <swiper
+          class="banner-swiper"
+          autoplay
+          circular
+          interval="4200"
+          duration="320"
+          indicator-dots
+          indicator-color="rgba(255,255,255,0.45)"
+          indicator-active-color="#FFFFFF"
+          current="{{bannerCurrent}}"
+          bindchange="onBannerChange"
+        >
+          <swiper-item wx:for="{{banners}}" wx:key="id">
+            <view class="banner-item banner-{{item.theme}}" bindtap="onBannerTap" data-action="{{item.action}}">
+              <image class="banner-image" wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
+              <view class="banner-mask"></view>
+              <view class="banner-content">
+                <view class="banner-tag">{{item.tag}}</view>
+                <view class="banner-title">{{item.title}}</view>
+                <view class="banner-sub">{{item.subTitle}}</view>
+                <view class="banner-cta">{{item.cta}} ></view>
+              </view>
+            </view>
+          </swiper-item>
+        </swiper>
+      </view>
+    </block>
+
+    <block wx:if="{{item.enabled && item.key === 'categories'}}">
+      <view class="card category-card">
+        <view class="section-head">
+          <view class="title">快捷分类</view>
+          <view class="sub-title">直达目标品类</view>
+        </view>
+        <view class="category-grid">
+          <view class="category-item" wx:for="{{categoryEntries}}" wx:key="id" data-keyword="{{item.keyword}}" bindtap="onTapCategory">
+            <view class="category-icon">{{item.icon}}</view>
+            <view class="category-name">{{item.name}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:if="{{item.enabled && item.key === 'brandCenter' && brandItems.length > 0}}">
+      <view class="card brand-card">
+        <view class="section-head">
+          <view class="title">品牌中心</view>
+          <view class="sub-title">每行展示 4 个品牌，支持后台动态配置</view>
+        </view>
+        <view class="brand-grid">
+          <view class="brand-item" wx:for="{{brandItems}}" wx:key="id" data-keyword="{{item.name}}" bindtap="onTapBrand">
+            <image class="brand-logo" wx:if="{{item.logoUrl}}" src="{{item.logoUrl}}" mode="aspectFill"></image>
+            <view class="brand-logo placeholder" wx:else>{{item.initial}}</view>
+            <view class="brand-name">{{item.name}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:if="{{item.enabled && item.key === 'notice'}}">
+      <view class="card notice-card">
+        <view class="notice-label">{{noticeTitle}}</view>
+        <view class="notice-text">{{noticeContent}}</view>
+      </view>
+    </block>
+
+    <block wx:if="{{item.enabled && item.key === 'featured' && !errorMessage}}">
+      <view class="card product-section">
+        <view class="section-head">
+          <view>
+            <view class="title">精选榜单</view>
+            <view class="sub-title">为你优先推荐</view>
+          </view>
+          <view class="section-link" bindtap="goProducts">查看更多 ></view>
+        </view>
+
+        <view class="empty-state" wx:if="{{featuredList.length === 0 && !loading}}">
+          <view class="empty-illustration">◌</view>
+          <view class="empty-title">暂无精选商品</view>
+          <view class="empty-desc">稍后刷新或前往商品页查看</view>
+          <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新</button>
+        </view>
+
+        <view class="product-grid" wx:if="{{featuredList.length > 0}}">
+          <view class="product-item" wx:for="{{featuredList}}" wx:key="id" data-id="{{item.id}}" bindtap="goProductDetail">
+            <image class="product-cover" wx:if="{{item.coverImageUrl}}" src="{{item.coverImageUrl}}" mode="aspectFill"></image>
+            <view class="product-cover placeholder" wx:else>无图</view>
+            <view class="product-name">{{item.name}}</view>
+            <view class="product-sub">{{item.description || item.code}}</view>
+            <view class="product-foot">
+              <view class="product-price">{{item.priceText}}</view>
+              <view class="badge {{item.needQuote ? 'quote' : (item.hasInStock ? 'ok' : 'warn')}}">{{item.needQuote ? '需报价' : item.stockStatusText}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:if="{{item.enabled && item.key === 'hot' && !errorMessage}}">
+      <view class="card product-section">
+        <view class="section-head">
+          <view>
+            <view class="title">热销商品</view>
+            <view class="sub-title">高频补货清单</view>
+          </view>
+          <view class="section-link" bindtap="goProducts">查看更多 ></view>
+        </view>
+
+        <view class="empty-state" wx:if="{{hotList.length === 0 && !loading}}">
+          <view class="empty-illustration">◌</view>
+          <view class="empty-title">暂无热销商品</view>
+          <view class="empty-desc">可前往商品页浏览全部商品</view>
+          <button class="btn-primary" bindtap="goProducts" disabled="{{actionLoading}}">去商品页</button>
+        </view>
+
+        <view class="product-grid" wx:if="{{hotList.length > 0}}">
+          <view class="product-item" wx:for="{{hotList}}" wx:key="id" data-id="{{item.id}}" bindtap="goProductDetail">
+            <image class="product-cover" wx:if="{{item.coverImageUrl}}" src="{{item.coverImageUrl}}" mode="aspectFill"></image>
+            <view class="product-cover placeholder" wx:else>无图</view>
+            <view class="product-name">{{item.name}}</view>
+            <view class="product-sub">{{item.description || item.code}}</view>
+            <view class="product-foot">
+              <view class="product-price">{{item.priceText}}</view>
+              <view class="badge {{item.needQuote ? 'quote' : (item.hasInStock ? 'ok' : 'warn')}}">{{item.needQuote ? '需报价' : item.stockStatusText}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

@@ -1,0 +1,88 @@
+<view class="container">
+  <view class="card">
+    <view class="row section-head">
+      <view class="title">申请开票</view>
+      <button class="btn-plain mini-btn" bindtap="goProfileManage" loading="{{actionLoading}}" disabled="{{loading || submitting || actionLoading}}">管理模板</button>
+    </view>
+
+    <picker mode="selector" range="{{profiles}}" range-key="title" value="{{profileIndex}}" bindchange="onProfileChange" wx:if="{{profiles.length > 0}}">
+      <view class="picker">模板：{{selectedProfileTitle}}</view>
+    </picker>
+    <view wx:if="{{profiles.length === 0}}">
+      <view class="sub-title">暂无开票模板，请先新增。</view>
+      <button class="btn-plain mini-btn" bindtap="goProfileManage" loading="{{actionLoading}}" disabled="{{loading || submitting || actionLoading}}">去维护模板</button>
+    </view>
+
+    <textarea class="textarea" value="{{remark}}" bindinput="onRemarkInput" placeholder="开票备注（选填）"></textarea>
+  </view>
+
+  <view class="card">
+    <view class="row section-head">
+      <view>
+        <view class="title">选择历史订单</view>
+        <view class="sub-title">可多选后一次提交开票申请</view>
+      </view>
+      <button class="btn-plain mini-btn" bindtap="refreshData" disabled="{{loading || submitting || actionLoading}}">刷新</button>
+    </view>
+
+    <view class="empty-state" wx:if="{{loading && orders.length === 0}}">
+      <view class="empty-title">订单加载中</view>
+      <view class="empty-desc">正在拉取可开票订单</view>
+      <button class="btn-plain" bindtap="refreshData" disabled="{{loading}}">刷新重试</button>
+    </view>
+    <view class="empty-state" wx:elif="{{errorMessage && orders.length === 0}}">
+      <view class="empty-title">订单加载失败</view>
+      <view class="empty-desc">{{errorMessage}}</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="refreshData" disabled="{{loading || submitting || actionLoading}}">刷新重试</button>
+        <button class="btn-plain cta-btn" bindtap="goOrders" disabled="{{loading || submitting || actionLoading}}">去订单页</button>
+      </view>
+    </view>
+    <view class="empty-state" wx:elif="{{orders.length === 0}}">
+      <view class="empty-title">暂无可选订单</view>
+      <view class="empty-desc">可前往订单页先下单，再返回开票中心申请</view>
+      <view class="cta-row">
+        <button class="btn-primary cta-btn" bindtap="goOrders" disabled="{{loading || submitting || actionLoading}}">去订单页</button>
+        <button class="btn-plain cta-btn" bindtap="refreshData" disabled="{{loading || submitting || actionLoading}}">刷新</button>
+      </view>
+    </view>
+
+    <view class="card-plain summary" wx:if="{{orders.length > 0}}">
+      <view class="sub-title">已选 {{selectedOrderCount}} / {{selectableOrderCount}} 单</view>
+      <view class="sub-title" wx:if="{{submitDisabled}}">请至少选择 1 个订单并确认模板后提交</view>
+    </view>
+
+    <view class="order-item" wx:for="{{orders}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleOrder">
+      <view class="row">
+        <view class="value">{{item.orderNo}}</view>
+        <view class="check {{item.checked ? 'checked' : ''}}">{{item.checked ? '✓' : ''}}</view>
+      </view>
+      <view class="sub-title">状态：{{item.status}} · 金额：¥{{item.totalAmountText}}</view>
+      <view class="sub-title">时间：{{item.createdAtText}}</view>
+    </view>
+
+    <button class="btn-primary" bindtap="submitRequest" loading="{{submitting}}" disabled="{{submitDisabled || loading || actionLoading || submitting}}">
+      提交开票申请
+    </button>
+  </view>
+
+  <view class="card">
+    <view class="title">申请记录</view>
+    <view class="empty-state" wx:if="{{requests.length === 0}}">
+      <view class="empty-title">暂无申请记录</view>
+      <view class="empty-desc">提交后会展示状态与回写结果</view>
+      <button class="btn-plain" bindtap="refreshData" disabled="{{loading || submitting || actionLoading}}">刷新</button>
+    </view>
+
+    <view class="record-item" wx:for="{{requests}}" wx:key="id">
+      <view class="row">
+        <view class="value">{{item.id}}</view>
+        <view class="badge-ok" wx:if="{{item.status === 'SUBMITTED'}}">已回写</view>
+        <view class="badge-warn" wx:else>{{item.status}}</view>
+      </view>
+      <view class="sub-title">订单数：{{item.orderCount}} · 模板：{{item.profileTitle}}</view>
+      <view class="sub-title">金蝶引用：{{item.kingdeeRefId}}</view>
+      <view class="sub-title">创建时间：{{item.createdAtText}}</view>
+    </view>
+  </view>
+</view>
